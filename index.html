@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grand Luxe Hotel - Admin Dashboard</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="assets/css/style.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: { 
+                            50: '#f0f4f8', 
+                            100: '#d9e2ec', 
+                            500: '#1e3a5f', 
+                            600: '#152a47', 
+                            700: '#0d1b2a', 
+                            800: '#0a1628', 
+                            900: '#050d15' 
+                        },
+                        gold: { 
+                            400: '#f4c542', 
+                            500: '#d4af37', 
+                            600: '#b8941f' 
+                        }
+                    },
+                    fontFamily: { 
+                        'inter': ['Inter', 'sans-serif'] 
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-inter bg-gray-50 h-full" x-data="dashboardData" x-init="initCharts()">
+    <div class="flex h-full">
+        <aside class="w-64 bg-gradient-to-b from-navy-800 to-navy-900 flex flex-col shadow-2xl h-full">
+            <div class="p-6 border-b border-navy-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gold-500 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-hotel text-white text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-white font-bold text-lg">Grand Luxe</h1>
+                        <p class="text-white text-xs">Hotel Management</p>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="flex-1 p-4 overflow-y-auto">
+                <div class="space-y-1">
+                    <button @click="currentPage = 'dashboard'" :class="currentPage === 'dashboard' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                        <i class="fas fa-chart-line w-5"></i>
+                        <span class="font-medium">Dashboard</span>
+                    </button>
+                    
+                    <template x-if="userRole === 'admin'">
+                        <div>
+                            <button @click="currentPage = 'bookings'" :class="currentPage === 'bookings' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-calendar-check w-5"></i>
+                                <span class="font-medium">Bookings</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'guests'" :class="currentPage === 'guests' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-users w-5"></i>
+                                <span class="font-medium">Guests</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'rooms'" :class="currentPage === 'rooms' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-bed w-5"></i>
+                                <span class="font-medium">Rooms</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'staff'" :class="currentPage === 'staff' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-user-tie w-5"></i>
+                                <span class="font-medium">Staff</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'services'" :class="currentPage === 'services' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-concierge-bell w-5"></i>
+                                <span class="font-medium">Services</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'finance'" :class="currentPage === 'finance' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-dollar-sign w-5"></i>
+                                <span class="font-medium">Finance</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'analytics'" :class="currentPage === 'analytics' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-chart-pie w-5"></i>
+                                <span class="font-medium">Analytics</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'settings'" :class="currentPage === 'settings' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-cog w-5"></i>
+                                <span class="font-medium">Settings</span>
+                            </button>
+                        </div>
+                    </template>
+                    
+                    <template x-if="userRole === 'chef'">
+                        <div>
+                            <button @click="currentPage = 'kitchen-orders'" :class="currentPage === 'kitchen-orders' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-utensils w-5"></i>
+                                <span class="font-medium">Kitchen Orders</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'menu-management'" :class="currentPage === 'menu-management' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-clipboard-list w-5"></i>
+                                <span class="font-medium">Menu Management</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'inventory'" :class="currentPage === 'inventory' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-boxes w-5"></i>
+                                <span class="font-medium">Inventory</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'kitchen-schedule'" :class="currentPage === 'kitchen-schedule' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-calendar-alt w-5"></i>
+                                <span class="font-medium">Kitchen Schedule</span>
+                            </button>
+                        </div>
+                    </template>
+                    
+                    <template x-if="userRole === 'waiter'">
+                        <div>
+                            <button @click="currentPage = 'tables'" :class="currentPage === 'tables' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-chair w-5"></i>
+                                <span class="font-medium">Tables</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'take-order'" :class="currentPage === 'take-order' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-receipt w-5"></i>
+                                <span class="font-medium">Take Order</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'active-orders'" :class="currentPage === 'active-orders' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-concierge-bell w-5"></i>
+                                <span class="font-medium">Active Orders</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'billing'" :class="currentPage === 'billing' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-cash-register w-5"></i>
+                                <span class="font-medium">Billing</span>
+                            </button>
+                        </div>
+                    </template>
+                    
+                    <template x-if="userRole === 'laundry'">
+                        <div>
+                            <button @click="currentPage = 'laundry-jobs'" :class="currentPage === 'laundry-jobs' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-tshirt w-5"></i>
+                                <span class="font-medium">Laundry Jobs</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'pickup-schedule'" :class="currentPage === 'pickup-schedule' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-truck-pickup w-5"></i>
+                                <span class="font-medium">Pickup Schedule</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'laundry-inventory'" :class="currentPage === 'laundry-inventory' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-box-open w-5"></i>
+                                <span class="font-medium">Inventory</span>
+                            </button>
+                            
+                            <button @click="currentPage = 'machine-status'" :class="currentPage === 'machine-status' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-cogs w-5"></i>
+                                <span class="font-medium">Machine Status</span>
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </nav>
+
+            <div class="p-4 border-t border-navy-700">
+                <div class="flex items-center gap-3 p-3 bg-navy-700 rounded-lg">
+                    <div class="w-10 h-10 bg-gold-500 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-white"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-white font-semibold text-sm" x-text="getRoleDisplayName()"></p>
+                        <p class="text-white text-xs" x-text="getRoleTitle()"></p>
+                    </div>
+                    <button class="text-navy-300 hover:text-white transition" @click="switchRole()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 overflow-y-auto h-full">
+            <header class="bg-white border-b border-gray-200 px-8 py-6 sticky top-0 z-10 shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-navy-800" x-text="formatPageTitle()"></h2>
+                        <p class="text-gray-600 text-sm">Grand Luxe Hotel - <span x-text="getRoleTitle()"></span> Portal</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-600">Role:</span>
+                            <select x-model="userRole" class="px-3 py-1 border border-gray-300 rounded text-sm">
+                                <option value="admin">Admin</option>
+                                <option value="chef">Chef</option>
+                                <option value="waiter">Waiter</option>
+                                <option value="laundry">Laundry</option>
+                            </select>
+                        </div>
+                        
+                        <button class="relative p-2 text-gray-600 hover:text-navy-700 transition">
+                            <i class="fas fa-bell text-xl"></i>
+                            <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                        </button>
+                        <button class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
+                            <i class="fas fa-plus mr-2"></i>
+                            <span x-text="getNewButtonText()"></span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- DASHBOARD PAGE -->
+            <div x-show="currentPage === 'dashboard'" class="p-8 fade-in">
+                <div class="mb-8 bg-gradient-to-r from-navy-600 to-navy-800 rounded-2xl p-8 text-white">
+                    <h1 class="text-3xl font-bold mb-2">
+                        <span x-text="userRole === 'admin' ? 'Admin Dashboard' : userRole === 'chef' ? 'Kitchen Command Center' : userRole === 'waiter' ? 'Restaurant Management' : 'Laundry Operations'"></span>
+                    </h1>
+                    <p class="text-navy-200">
+                        <span x-text="userRole === 'admin' ? 'Manage hotel operations, bookings, and finances' : 
+                                  userRole === 'chef' ? 'Oversee kitchen orders, menu, and inventory' : 
+                                  userRole === 'waiter' ? 'Handle table service and customer orders' : 
+                                  'Manage laundry services and delivery schedules'"></span>
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <template x-if="userRole === 'admin'">
+                        <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover-lift">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-dollar-sign text-green-600 text-xl"></i>
+                                </div>
+                                <span class="text-green-600 text-sm font-semibold">+12.5%</span>
+                            </div>
+                            <p class="text-gray-600 text-sm mb-1">Total Revenue</p>
+                            <p class="text-3xl font-bold text-navy-800">$<span x-text="stats.totalRevenue.toLocaleString()"></span></p>
+                        </div>
+                    </template>
+
+                    <template x-if="userRole === 'chef'">
+                        <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover-lift">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-utensils text-red-600 text-xl"></i>
+                                </div>
+                                <span class="text-red-600 text-sm font-semibold">+8</span>
+                            </div>
+                            <p class="text-gray-600 text-sm mb-1">Active Orders</p>
+                            <p class="text-3xl font-bold text-navy-800" x-text="chefOrders.filter(o => o.status !== 'Ready').length"></p>
+                        </div>
+                    </template>
+
+                    <template x-if="userRole === 'waiter'">
+                        <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover-lift">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-chair text-blue-600 text-xl"></i>
+                                </div>
+                                <span class="text-blue-600 text-sm font-semibold">4/6</span>
+                            </div>
+                            <p class="text-gray-600 text-sm mb-1">Tables Occupied</p>
+                            <p class="text-3xl font-bold text-navy-800" x-text="waiterTables.filter(t => t.status === 'Occupied').length"></p>
+                        </div>
+                    </template>
+
+                    <template x-if="userRole === 'laundry'">
+                        <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover-lift">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-tshirt text-purple-600 text-xl"></i>
+                                </div>
+                                <span class="text-purple-600 text-sm font-semibold">3</span>
+                            </div>
+                            <p class="text-gray-600 text-sm mb-1">Processing Jobs</p>
+                            <p class="text-3xl font-bold text-navy-800" x-text="laundryJobs.filter(j => j.status === 'Processing').length"></p>
+                        </div>
+                    </template>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover-lift">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-gold-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-clock text-gold-600 text-xl"></i>
+                            </div>
+                            <span class="text-gold-600 text-sm font-semibold">Today</span>
+                        </div>
+                        <p class="text-gray-600 text-sm mb-1">
+                            <span x-text="userRole === 'admin' ? 'Active Guests' : 
+                                      userRole === 'chef' ? 'Orders Today' : 
+                                      userRole === 'waiter' ? 'Orders Served' : 
+                                      'Jobs Completed'"></span>
+                        </p>
+                        <p class="text-3xl font-bold text-navy-800">
+                            <span x-text="userRole === 'admin' ? stats.activeGuests : 
+                                      userRole === 'chef' ? chefOrders.length : 
+                                      userRole === 'waiter' ? waiterOrders.filter(o => o.status === 'Served').length : 
+                                      laundryJobs.filter(j => j.status === 'Delivered').length"></span>
+                        </p>
+                    </div>
+
+                    <template x-if="userRole === 'admin'">
+                        <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover-lift">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-calendar-check text-blue-600 text-xl"></i>
+                                </div>
+                                <span class="text-blue-600 text-sm font-semibold">+8.2%</span>
+                            </div>
+                            <p class="text-gray-600 text-sm mb-1">Total Bookings</p>
+                            <p class="text-3xl font-bold text-navy-800" x-text="stats.totalBookings"></p>
+                        </div>
+                    </template>
+
+                    <template x-if="userRole === 'admin'">
+                        <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover-lift">
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                                    <i class="fas fa-chart-line text-purple-600 text-xl"></i>
+                                </div>
+                                <span class="text-purple-600 text-sm font-semibold">+5.3%</span>
+                            </div>
+                            <p class="text-gray-600 text-sm mb-1">Occupancy Rate</p>
+                            <p class="text-3xl font-bold text-navy-800"><span x-text="stats.occupancyRate"></span>%</p>
+                        </div>
+                    </template>
+                </div>
+
+                <template x-if="userRole === 'admin'">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                            <h3 class="text-lg font-bold text-navy-800 mb-4">Revenue Overview</h3>
+                            <div class="h-64 overflow-hidden">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                            <h3 class="text-lg font-bold text-navy-800 mb-4">Weekly Occupancy</h3>
+                            <div class="h-64 overflow-hidden">
+                                <canvas id="occupancyChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 mb-8">
+                    <h3 class="text-lg font-bold text-navy-800 mb-4">Quick Actions</h3>
+                    <div class="flex flex-wrap gap-3">
+                        <template x-if="userRole === 'admin'">
+                            <button class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
+                                <i class="fas fa-plus mr-2"></i> New Booking
+                            </button>
+                        </template>
+                        <template x-if="userRole === 'chef'">
+                            <button class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">
+                                <i class="fas fa-plus mr-2"></i> Add Menu Item
+                            </button>
+                        </template>
+                        <template x-if="userRole === 'waiter'">
+                            <button class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                                <i class="fas fa-plus mr-2"></i> New Order
+                            </button>
+                        </template>
+                        <template x-if="userRole === 'laundry'">
+                            <button class="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition">
+                                <i class="fas fa-plus mr-2"></i> New Laundry Job
+                            </button>
+                        </template>
+                        
+                        <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                            <i class="fas fa-chart-line mr-2"></i> View Reports
+                        </button>
+                        <button class="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-semibold hover:bg-green-200 transition">
+                            <i class="fas fa-print mr-2"></i> Print Summary
+                        </button>
+                    </div>
+                </div>
+
+                <template x-if="userRole === 'admin'">
+                    <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-bold text-navy-800">Recent Bookings</h3>
+                            <button @click="currentPage = 'bookings'" class="text-gold-600 text-sm font-semibold hover:text-gold-700 transition">View All</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="w-full">
+                                <thead>
+                                    <tr class="border-b border-gray-200">
+                                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Booking ID</th>
+                                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Guest</th>
+                                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Room</th>
+                                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Check-in</th>
+                                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
+                                        <th class="text-right py-3 px-4 text-sm font-semibold text-gray-600">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="booking in recentBookings" :key="booking.id">
+                                        <tr class="border-b border-gray-100 hover:bg-gray-50 transition table-row-hover">
+                                            <td class="py-4 px-4 text-sm font-medium text-navy-700" x-text="booking.id"></td>
+                                            <td class="py-4 px-4 text-sm text-gray-700" x-text="booking.guest"></td>
+                                            <td class="py-4 px-4 text-sm text-gray-700" x-text="booking.room"></td>
+                                            <td class="py-4 px-4 text-sm text-gray-700" x-text="booking.checkin"></td>
+                                            <td class="py-4 px-4">
+                                                <span :class="{
+                                                    'status-active': booking.status === 'active',
+                                                    'status-pending': booking.status === 'pending',
+                                                    'bg-blue-100 text-blue-700': booking.status === 'confirmed',
+                                                    'status-completed': booking.status === 'completed'
+                                                }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="booking.status"></span>
+                                            </td>
+                                            <td class="py-4 px-4 text-sm font-semibold text-navy-700 text-right">$<span x-text="booking.amount"></span></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- ADMIN PAGES -->
+            
+            <!-- BOOKINGS PAGE -->
+            <div x-show="currentPage === 'bookings' && userRole === 'admin'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <input type="text" placeholder="Search bookings..." class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-500 w-80">
+                            <select class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-500">
+                                <option>All Status</option>
+                                <option>Active</option>
+                                <option>Confirmed</option>
+                                <option>Pending</option>
+                                <option>Completed</option>
+                            </select>
+                        </div>
+                        <button class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
+                            <i class="fas fa-download mr-2"></i>
+                            Export
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Booking ID</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Guest</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Room</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Check-in</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Check-out</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
+                                    <th class="text-right py-3 px-4 text-sm font-semibold text-gray-600">Amount</th>
+                                    <th class="text-center py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="booking in recentBookings" :key="booking.id">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition table-row-hover">
+                                        <td class="py-4 px-4 text-sm font-medium text-navy-700" x-text="booking.id"></td>
+                                        <td class="py-4 px-4 text-sm text-gray-700" x-text="booking.guest"></td>
+                                        <td class="py-4 px-4 text-sm text-gray-700" x-text="booking.room"></td>
+                                        <td class="py-4 px-4 text-sm text-gray-700" x-text="booking.checkin"></td>
+                                        <td class="py-4 px-4 text-sm text-gray-700" x-text="booking.checkout"></td>
+                                        <td class="py-4 px-4">
+                                            <span :class="{
+                                                'status-active': booking.status === 'active',
+                                                'status-pending': booking.status === 'pending',
+                                                'bg-blue-100 text-blue-700': booking.status === 'confirmed',
+                                                'status-completed': booking.status === 'completed'
+                                            }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="booking.status"></span>
+                                        </td>
+                                        <td class="py-4 px-4 text-sm font-semibold text-navy-700 text-right">$<span x-text="booking.amount"></span></td>
+                                        <td class="py-4 px-4 text-center">
+                                            <button class="text-navy-600 hover:text-navy-800 mx-1"><i class="fas fa-eye"></i></button>
+                                            <button class="text-blue-600 hover:text-blue-800 mx-1"><i class="fas fa-edit"></i></button>
+                                            <button class="text-red-600 hover:text-red-800 mx-1"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GUESTS PAGE -->
+            <div x-show="currentPage === 'guests' && userRole === 'admin'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <input type="text" placeholder="Search guests..." class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-500 w-80">
+                            <select class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-500">
+                                <option>All Tiers</option>
+                                <option>Platinum</option>
+                                <option>Gold</option>
+                                <option>Silver</option>
+                            </select>
+                        </div>
+                        <button class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
+                            <i class="fas fa-user-plus mr-2"></i>
+                            Add Guest
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Name</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Email</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Phone</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Room</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Check-in</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Tier</th>
+                                    <th class="text-center py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="guest in guests" :key="guest.id">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition table-row-hover">
+                                        <td class="py-4 px-4 text-sm font-medium text-navy-700" x-text="guest.name"></td>
+                                        <td class="py-4 px-4 text-sm text-gray-700" x-text="guest.email"></td>
+                                        <td class="py-4 px-4 text-sm text-gray-700" x-text="guest.phone"></td>
+                                        <td class="py-4 px-4 text-sm text-gray-700" x-text="guest.room"></td>
+                                        <td class="py-4 px-4 text-sm text-gray-700" x-text="guest.checkin"></td>
+                                        <td class="py-4 px-4">
+                                            <span :class="{
+                                                'status-active': guest.status === 'checked-in',
+                                                'status-pending': guest.status === 'pending',
+                                                'bg-blue-100 text-blue-700': guest.status === 'confirmed'
+                                            }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="guest.status"></span>
+                                        </td>
+                                        <td class="py-4 px-4">
+                                            <span :class="{
+                                                'bg-purple-100 text-purple-700': guest.tier === 'Platinum',
+                                                'bg-gold-100 text-gold-700': guest.tier === 'Gold',
+                                                'bg-gray-200 text-gray-700': guest.tier === 'Silver'
+                                            }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="guest.tier"></span>
+                                        </td>
+                                        <td class="py-4 px-4 text-center">
+                                            <button class="text-navy-600 hover:text-navy-800 mx-1"><i class="fas fa-eye"></i></button>
+                                            <button class="text-blue-600 hover:text-blue-800 mx-1"><i class="fas fa-edit"></i></button>
+                                            <button class="text-green-600 hover:text-green-800 mx-1"><i class="fas fa-qrcode"></i></button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROOMS PAGE -->
+            <div x-show="currentPage === 'rooms' && userRole === 'admin'" class="p-8 fade-in">
+                <div class="mb-6 flex items-center justify-between">
+                    <h2 class="text-2xl font-bold text-navy-800">Room Management</h2>
+                    <div class="flex gap-3">
+                        <button class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
+                            <i class="fas fa-plus mr-2"></i> Add Room
+                        </button>
+                        <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                            <i class="fas fa-filter mr-2"></i> Filter
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <template x-for="room in rooms" :key="room.id">
+                        <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover-lift">
+                            <div class="flex items-start justify-between mb-4">
+                                <div>
+                                    <h3 class="text-2xl font-bold text-navy-800 mb-1">Room <span x-text="room.number"></span></h3>
+                                    <p class="text-gray-600 text-sm" x-text="room.type"></p>
+                                </div>
+                                <span :class="{
+                                    'status-active': room.status === 'occupied',
+                                    'bg-green-100 text-green-700': room.status === 'available',
+                                    'bg-blue-100 text-blue-700': room.status === 'reserved',
+                                    'status-pending': room.status === 'cleaning'
+                                }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="room.status"></span>
+                            </div>
+                            <div class="space-y-2 mb-4">
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-gray-600">Floor</span>
+                                    <span class="font-semibold text-navy-700" x-text="room.floor"></span>
+                                </div>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-gray-600">Price</span>
+                                    <span class="font-semibold text-navy-700">$<span x-text="room.price"></span>/night</span>
+                                </div>
+                                <div x-show="room.guest" class="flex items-center justify-between text-sm">
+                                    <span class="text-gray-600">Guest</span>
+                                    <span class="font-semibold text-navy-700" x-text="room.guest"></span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="flex-1 px-4 py-2 bg-navy-700 text-white rounded-lg text-sm font-semibold hover:bg-navy-800 transition">
+                                    <i class="fas fa-edit mr-1"></i> Edit
+                                </button>
+                                <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                
+                <div class="mt-8 bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <h3 class="text-lg font-bold text-navy-800 mb-4">Room Status Summary</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <p class="text-sm text-red-700 mb-1">Occupied</p>
+                            <p class="text-2xl font-bold text-red-700" x-text="rooms.filter(r => r.status === 'occupied').length"></p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <p class="text-sm text-green-700 mb-1">Available</p>
+                            <p class="text-2xl font-bold text-green-700" x-text="rooms.filter(r => r.status === 'available').length"></p>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <p class="text-sm text-blue-700 mb-1">Reserved</p>
+                            <p class="text-2xl font-bold text-blue-700" x-text="rooms.filter(r => r.status === 'reserved').length"></p>
+                        </div>
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <p class="text-sm text-yellow-700 mb-1">Cleaning</p>
+                            <p class="text-2xl font-bold text-yellow-700" x-text="rooms.filter(r => r.status === 'cleaning').length"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STAFF PAGE -->
+            <div x-show="currentPage === 'staff' && userRole === 'admin'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-4">
+                            <input type="text" placeholder="Search staff..." class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-500 w-80">
+                            <select class="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-500">
+                                <option>All Departments</option>
+                                <option>Front Desk</option>
+                                <option>Housekeeping</option>
+                                <option>Kitchen</option>
+                                <option>Restaurant</option>
+                                <option>Maintenance</option>
+                                <option>Management</option>
+                            </select>
+                        </div>
+                        <button class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
+                            <i class="fas fa-user-plus mr-2"></i>
+                            Add Staff
+                        </button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Name</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Role</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Department</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Shift</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Performance</th>
+                                    <th class="text-center py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="member in staff" :key="member.id">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 transition table-row-hover">
+                                        <td class="py-4 px-4 text-sm font-medium text-navy-700" x-text="member.name"></td>
+                                        <td class="py-4 px-4 text-sm text-gray-700" x-text="member.role"></td>
+                                        <td class="py-4 px-4 text-sm text-gray-700" x-text="member.department"></td>
+                                        <td class="py-4 px-4 text-sm text-gray-700" x-text="member.shift"></td>
+                                        <td class="py-4 px-4">
+                                            <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold" x-text="member.status"></span>
+                                        </td>
+                                        <td class="py-4 px-4">
+                                            <div class="flex items-center gap-2">
+                                                <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                                    <div class="bg-gold-500 h-2 rounded-full" :style="`width: ${member.performance}%`"></div>
+                                                </div>
+                                                <span class="text-sm font-semibold text-navy-700" x-text="member.performance + '%'"></span>
+                                            </div>
+                                        </td>
+                                        <td class="py-4 px-4 text-center">
+                                            <button class="text-navy-600 hover:text-navy-800 mx-1"><i class="fas fa-eye"></i></button>
+                                            <button class="text-blue-600 hover:text-blue-800 mx-1"><i class="fas fa-edit"></i></button>
+                                            <button class="text-red-600 hover:text-red-800 mx-1"><i class="fas fa-trash"></i></button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SERVICES PAGE -->
+            <div x-show="currentPage === 'services' && userRole === 'admin'" class="p-8 fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <template x-for="service in services" :key="service.id">
+                        <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover-lift">
+                            <h3 class="text-xl font-bold text-navy-800 mb-4" x-text="service.name"></h3>
+                            <div class="space-y-3 mb-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-600 text-sm">Total Requests</span>
+                                    <span class="font-bold text-navy-700 text-lg" x-text="service.requests"></span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-600 text-sm">Completed</span>
+                                    <span class="font-semibold text-green-600" x-text="service.completed"></span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-600 text-sm">Pending</span>
+                                    <span class="font-semibold text-yellow-600" x-text="service.pending"></span>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-600 text-sm">Avg. Time</span>
+                                    <span class="font-semibold text-navy-700" x-text="service.avgTime"></span>
+                                </div>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                                <div class="bg-green-500 h-2 rounded-full" :style="`width: ${(service.completed / service.requests * 100)}%`"></div>
+                            </div>
+                            <p class="text-xs text-gray-600 text-center" x-text="`${Math.round(service.completed / service.requests * 100)}% completion rate`"></p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- FINANCE PAGE -->
+            <div x-show="currentPage === 'finance' && userRole === 'admin'" class="p-8 fade-in">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 shadow-lg text-white">
+                        <p class="text-green-100 text-sm mb-2">Total Revenue</p>
+                        <p class="text-4xl font-bold mb-2">$245,680</p>
+                        <p class="text-green-100 text-sm"><i class="fas fa-arrow-up mr-1"></i>12.5% from last month</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 shadow-lg text-white">
+                        <p class="text-blue-100 text-sm mb-2">Pending Payments</p>
+                        <p class="text-4xl font-bold mb-2">$12,450</p>
+                        <p class="text-blue-100 text-sm">8 transactions pending</p>
+                    </div>
+                    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 shadow-lg text-white">
+                        <p class="text-purple-100 text-sm mb-2">Refunds Issued</p>
+                        <p class="text-4xl font-bold mb-2">$3,280</p>
+                        <p class="text-purple-100 text-sm">15 refunds this month</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                        <h3 class="text-lg font-bold text-navy-800 mb-6">Revenue by Category</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>Room Bookings</span>
+                                    <span class="font-semibold">$198,500</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-blue-500 h-2 rounded-full" style="width: 80%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>Food & Beverage</span>
+                                    <span class="font-semibold">$28,750</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-green-500 h-2 rounded-full" style="width: 12%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span>Spa & Services</span>
+                                    <span class="font-semibold">$12,430</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-purple-500 h-2 rounded-full" style="width: 5%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                        <h3 class="text-lg font-bold text-navy-800 mb-6">Recent Transactions</h3>
+                        <div class="space-y-3">
+                            <template x-for="transaction in transactions" :key="transaction.id">
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p class="font-semibold" x-text="transaction.type"></p>
+                                        <p class="text-sm text-gray-600" x-text="transaction.guest"></p>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="font-semibold text-navy-700">$<span x-text="transaction.amount"></span></p>
+                                        <p class="text-sm text-gray-600" x-text="transaction.date"></p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ANALYTICS PAGE -->
+            <div x-show="currentPage === 'analytics' && userRole === 'admin'" class="p-8 fade-in">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                        <h3 class="text-lg font-bold text-navy-800 mb-4">Room Status Distribution</h3>
+                        <div class="h-80 overflow-hidden">
+                            <canvas id="roomStatusChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                        <h3 class="text-lg font-bold text-navy-800 mb-4">Guest Demographics</h3>
+                        <div class="h-80 overflow-hidden">
+                            <canvas id="demographicsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover-lift">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-star text-blue-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-gray-600 text-sm">Avg. Rating</p>
+                                <p class="text-2xl font-bold text-navy-800">4.8</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-600">Based on 1,234 reviews</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover-lift">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-redo text-green-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-gray-600 text-sm">Return Rate</p>
+                                <p class="text-2xl font-bold text-navy-800">68%</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-600">Guests returning within 6 months</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover-lift">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-clock text-purple-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-gray-600 text-sm">Avg. Stay</p>
+                                <p class="text-2xl font-bold text-navy-800">3.5</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-600">Average nights per booking</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover-lift">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-12 h-12 bg-gold-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-dollar-sign text-gold-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-gray-600 text-sm">Avg. Revenue</p>
+                                <p class="text-2xl font-bold text-navy-800">$875</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-600">Per guest per stay</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETTINGS PAGE -->
+            <div x-show="currentPage === 'settings' && userRole === 'admin'" class="p-8 fade-in">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 space-y-6">
+                        <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                            <h3 class="text-lg font-bold text-navy-800 mb-6">Hotel Information</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Hotel Name</label>
+                                    <input type="text" value="Grand Luxe Hotel" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-500">
+                                </div>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                        <input type="email" value="info@grandluxe.com" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                                        <input type="tel" value="+1 (555) 000-0000" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-500">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
+                                    <textarea rows="3" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-500">123 Luxury Avenue, Downtown District, City 12345</textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                            <h3 class="text-lg font-bold text-navy-800 mb-6">Quick Actions</h3>
+                            <div class="space-y-3">
+                                <button class="w-full px-4 py-3 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition text-left">
+                                    <i class="fas fa-download mr-2"></i>
+                                    Export Data
+                                </button>
+                                <button class="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition text-left">
+                                    <i class="fas fa-sync mr-2"></i>
+                                    Sync Database
+                                </button>
+                                <button class="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition text-left">
+                                    <i class="fas fa-file-invoice mr-2"></i>
+                                    Generate Report
+                                </button>
+                                <button class="w-full px-4 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition text-left">
+                                    <i class="fas fa-trash mr-2"></i>
+                                    Clear Cache
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHEF PAGES -->
+            
+            <!-- KITCHEN ORDERS -->
+            <div x-show="currentPage === 'kitchen-orders' && userRole === 'chef'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-navy-800">Kitchen Orders</h3>
+                        <div class="flex gap-3">
+                            <button class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">
+                                <i class="fas fa-plus mr-2"></i> New Order
+                            </button>
+                            <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                                <i class="fas fa-filter mr-2"></i> Filter
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <template x-for="order in chefOrders" :key="order.id">
+                            <div class="border border-gray-200 rounded-xl p-5 hover:shadow-md transition hover-lift">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h4 class="font-bold text-navy-800">Order #<span x-text="order.id"></span></h4>
+                                        <p class="text-sm text-gray-600" x-text="order.guest"></p>
+                                        <p class="text-sm text-gray-600">Room <span x-text="order.room"></span></p>
+                                    </div>
+                                    <span :class="{
+                                        'bg-red-100 text-red-700': order.priority === 'High',
+                                        'bg-yellow-100 text-yellow-700': order.priority === 'Normal',
+                                        'bg-green-100 text-green-700': order.priority === 'Low'
+                                    }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="order.priority"></span>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <p class="text-sm text-gray-600 mb-1">Items:</p>
+                                    <p class="text-sm font-medium" x-text="order.items"></p>
+                                </div>
+                                
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <span :class="{
+                                            'status-processing': order.status === 'Cooking',
+                                            'status-pending': order.status === 'Pending',
+                                            'status-active': order.status === 'Ready'
+                                        }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="order.status"></span>
+                                    </div>
+                                    <div class="text-sm text-gray-600">
+                                        <i class="fas fa-clock mr-1"></i>
+                                        <span x-text="order.time"></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4 pt-4 border-t border-gray-100">
+                                    <div class="flex gap-2">
+                                        <button class="flex-1 px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-semibold hover:bg-green-200 transition">
+                                            <i class="fas fa-check mr-1"></i> Ready
+                                        </button>
+                                        <button class="flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200 transition">
+                                            <i class="fas fa-edit mr-1"></i> Update
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MENU MANAGEMENT -->
+            <div x-show="currentPage === 'menu-management' && userRole === 'chef'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-navy-800">Menu Management</h3>
+                        <div class="flex gap-3">
+                            <button class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">
+                                <i class="fas fa-plus mr-2"></i> Add Item
+                            </button>
+                            <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                                <i class="fas fa-print mr-2"></i> Print Menu
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Item Name</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Category</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Price</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Prep Time</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="item in chefMenu" :key="item.id">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 table-row-hover">
+                                        <td class="py-4 px-4 font-medium" x-text="item.name"></td>
+                                        <td class="py-4 px-4">
+                                            <span :class="{
+                                                'bg-blue-100 text-blue-700': item.category === 'Main Course',
+                                                'bg-green-100 text-green-700': item.category === 'Appetizer',
+                                                'bg-purple-100 text-purple-700': item.category === 'Dessert'
+                                            }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="item.category"></span>
+                                        </td>
+                                        <td class="py-4 px-4 font-semibold">$<span x-text="item.price"></span></td>
+                                        <td class="py-4 px-4">
+                                            <span :class="item.status === 'Available' ? 'status-active' : 'bg-red-100 text-red-700'" 
+                                                  class="px-3 py-1 rounded-full text-xs font-semibold" x-text="item.status"></span>
+                                        </td>
+                                        <td class="py-4 px-4" x-text="item.prepTime"></td>
+                                        <td class="py-4 px-4">
+                                            <button class="text-blue-600 hover:text-blue-800 mr-3">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-green-600 hover:text-green-800 mr-3">
+                                                <i class="fas fa-toggle-on"></i>
+                                            </button>
+                                            <button class="text-red-600 hover:text-red-800">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHEF INVENTORY -->
+            <div x-show="currentPage === 'inventory' && userRole === 'chef'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <h3 class="text-2xl font-bold text-navy-800 mb-6">Kitchen Inventory</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                        <template x-for="item in chefInventory" :key="item.item">
+                            <div class="border border-gray-200 rounded-xl p-6 hover-lift">
+                                <div class="flex justify-between items-start mb-4">
+                                    <h4 class="font-bold text-navy-800 text-lg" x-text="item.item"></h4>
+                                    <span :class="item.lowStock ? 'bg-red-100 text-red-700' : 'status-active'" 
+                                          class="px-3 py-1 rounded-full text-xs font-semibold">
+                                        <span x-text="item.lowStock ? 'Low Stock' : 'In Stock'"></span>
+                                    </span>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <p class="text-sm text-gray-600 mb-1">Quantity:</p>
+                                    <p class="text-2xl font-bold text-navy-800">
+                                        <span x-text="item.quantity"></span>
+                                        <span class="text-sm text-gray-600 ml-1" x-text="item.unit"></span>
+                                    </p>
+                                </div>
+                                
+                                <div class="flex gap-2">
+                                    <button class="flex-1 px-4 py-2 bg-navy-700 text-white rounded-lg text-sm font-semibold hover:bg-navy-800 transition">
+                                        <i class="fas fa-shopping-cart mr-1"></i> Reorder
+                                    </button>
+                                    <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition">
+                                        <i class="fas fa-chart-line"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+                        <h4 class="font-bold text-yellow-800 mb-2">Low Stock Alert</h4>
+                        <p class="text-yellow-700 text-sm">The following items are running low and need to be reordered:</p>
+                        <ul class="mt-2 text-sm text-yellow-700">
+                            <template x-for="item in chefInventory.filter(i => i.lowStock)" :key="item.item">
+                                <li class="flex items-center gap-2">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    <span x-text="item.item + ' (' + item.quantity + ' ' + item.unit + ')'"></span>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KITCHEN SCHEDULE -->
+            <div x-show="currentPage === 'kitchen-schedule' && userRole === 'chef'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <h3 class="text-2xl font-bold text-navy-800 mb-6">Kitchen Schedule</h3>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="border border-gray-200 rounded-xl p-6 hover-lift">
+                            <h4 class="font-bold text-navy-800 text-lg mb-4 flex items-center gap-2">
+                                <i class="fas fa-sun text-yellow-500"></i>
+                                Morning Shift (6 AM - 2 PM)
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                    <div>
+                                        <p class="font-semibold">David Lee</p>
+                                        <p class="text-sm text-gray-600">Head Chef</p>
+                                    </div>
+                                    <span class="status-active px-3 py-1 rounded-full text-xs font-semibold">On Duty</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                    <div>
+                                        <p class="font-semibold">Maria Garcia</p>
+                                        <p class="text-sm text-gray-600">Sous Chef</p>
+                                    </div>
+                                    <span class="status-active px-3 py-1 rounded-full text-xs font-semibold">On Duty</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="border border-gray-200 rounded-xl p-6 hover-lift">
+                            <h4 class="font-bold text-navy-800 text-lg mb-4 flex items-center gap-2">
+                                <i class="fas fa-moon text-blue-500"></i>
+                                Evening Shift (2 PM - 10 PM)
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                                    <div>
+                                        <p class="font-semibold">Robert Chen</p>
+                                        <p class="text-sm text-gray-600">Head Chef</p>
+                                    </div>
+                                    <span class="status-pending px-3 py-1 rounded-full text-xs font-semibold">Starting Soon</span>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                                    <div>
+                                        <p class="font-semibold">Lisa Wang</p>
+                                        <p class="text-sm text-gray-600">Pastry Chef</p>
+                                    </div>
+                                    <span class="status-pending px-3 py-1 rounded-full text-xs font-semibold">Starting Soon</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="border border-gray-200 rounded-xl p-6 hover-lift">
+                            <h4 class="font-bold text-navy-800 text-lg mb-4">Upcoming Events</h4>
+                            <div class="space-y-3">
+                                <div class="p-3 bg-green-50 rounded-lg">
+                                    <p class="font-semibold text-green-800">Wedding Reception</p>
+                                    <p class="text-sm text-gray-600">Dec 20, 2024 • 150 Guests</p>
+                                    <p class="text-xs text-gray-600 mt-1">Special menu required</p>
+                                </div>
+                                <div class="p-3 bg-blue-50 rounded-lg">
+                                    <p class="font-semibold text-blue-800">Corporate Dinner</p>
+                                    <p class="text-sm text-gray-600">Dec 22, 2024 • 80 Guests</p>
+                                    <p class="text-xs text-gray-600 mt-1">Formal dining setup</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WAITER PAGES -->
+            
+            <!-- TABLES -->
+            <div x-show="currentPage === 'tables' && userRole === 'waiter'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <h3 class="text-2xl font-bold text-navy-800 mb-6">Restaurant Tables</h3>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+                        <template x-for="table in waiterTables" :key="table.table">
+                            <div :class="{
+                                'bg-green-50 border-green-200 hover:bg-green-100': table.status === 'Available',
+                                'bg-blue-50 border-blue-200 hover:bg-blue-100': table.status === 'Occupied',
+                                'bg-yellow-50 border-yellow-200 hover:bg-yellow-100': table.status === 'Reserved'
+                            }" class="border rounded-xl p-6 text-center cursor-pointer transition hover-lift">
+                                <div class="text-4xl font-bold mb-2" x-text="table.table"></div>
+                                <div class="mb-2">
+                                    <span :class="{
+                                        'status-active': table.status === 'Available',
+                                        'status-processing': table.status === 'Occupied',
+                                        'status-pending': table.status === 'Reserved'
+                                    }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="table.status"></span>
+                                </div>
+                                <div class="text-sm text-gray-600 mb-1">
+                                    <i class="fas fa-users mr-1"></i>
+                                    <span x-text="table.guests"></span> guests
+                                </div>
+                                <div class="text-sm" :class="{
+                                    'text-yellow-600': table.order === 'Pending',
+                                    'text-green-600': table.order === 'Served',
+                                    'text-blue-600': table.order === 'Ready',
+                                    'text-gray-600': table.order === 'None'
+                                }">
+                                    <span x-text="table.order"></span>
+                                </div>
+                                <div class="text-xs text-gray-500 mt-2">
+                                    <i class="fas fa-clock mr-1"></i>
+                                    <span x-text="table.time"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAKE ORDER -->
+            <div x-show="currentPage === 'take-order' && userRole === 'waiter'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2">
+                            <h3 class="text-2xl font-bold text-navy-800 mb-6">Menu Items</h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <template x-for="item in waiterMenuItems" :key="item.id">
+                                    <div class="border border-gray-200 rounded-xl p-4 hover:shadow-md transition cursor-pointer hover-lift">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <h4 class="font-bold text-navy-800" x-text="item.name"></h4>
+                                            <span class="font-semibold text-green-600">$<span x-text="item.price"></span></span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span :class="{
+                                                'bg-blue-100 text-blue-700': item.category === 'Main',
+                                                'bg-green-100 text-green-700': item.category === 'Appetizer',
+                                                'bg-purple-100 text-purple-700': item.category === 'Beverage'
+                                            }" class="px-2 py-1 rounded-full text-xs" x-text="item.category"></span>
+                                            <button class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200 transition">
+                                                <i class="fas fa-plus mr-1"></i> Add
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <div class="lg:col-span-1">
+                            <div class="sticky top-24">
+                                <h3 class="text-2xl font-bold text-navy-800 mb-6">Order Summary</h3>
+                                
+                                <div class="border border-gray-200 rounded-xl p-6">
+                                    <div class="mb-6">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Table Number</label>
+                                        <select class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option>T01</option>
+                                            <option>T02</option>
+                                            <option>T03</option>
+                                            <option>T04</option>
+                                            <option>T05</option>
+                                            <option>T06</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="mb-6">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Guest Count</label>
+                                        <input type="number" min="1" max="12" value="2" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                    
+                                    <div class="space-y-3 mb-6">
+                                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                            <div>
+                                                <p class="font-semibold">Burger x2</p>
+                                                <p class="text-sm text-gray-600">Main</p>
+                                            </div>
+                                            <p class="font-semibold">$36</p>
+                                        </div>
+                                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                            <div>
+                                                <p class="font-semibold">Pasta</p>
+                                                <p class="text-sm text-gray-600">Main</p>
+                                            </div>
+                                            <p class="font-semibold">$22</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="border-t border-gray-200 pt-4">
+                                        <div class="flex justify-between mb-2">
+                                            <span class="text-gray-600">Subtotal</span>
+                                            <span class="font-semibold">$58</span>
+                                        </div>
+                                        <div class="flex justify-between mb-4">
+                                            <span class="text-gray-600">Tax (10%)</span>
+                                            <span class="font-semibold">$5.80</span>
+                                        </div>
+                                        <div class="flex justify-between text-lg font-bold">
+                                            <span>Total</span>
+                                            <span>$63.80</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <button class="w-full mt-6 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                                        <i class="fas fa-paper-plane mr-2"></i> Submit Order
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACTIVE ORDERS -->
+            <div x-show="currentPage === 'active-orders' && userRole === 'waiter'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <h3 class="text-2xl font-bold text-navy-800 mb-6">Active Orders</h3>
+                    
+                    <div class="table-responsive">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Order ID</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Table</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Items</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Amount</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="order in waiterOrders" :key="order.id">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 table-row-hover">
+                                        <td class="py-4 px-4 font-medium" x-text="order.id"></td>
+                                        <td class="py-4 px-4">
+                                            <div class="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold" x-text="order.table.replace('T', '')"></div>
+                                        </td>
+                                        <td class="py-4 px-4" x-text="order.items"></td>
+                                        <td class="py-4 px-4">
+                                            <span :class="{
+                                                'status-pending': order.status === 'Pending',
+                                                'status-processing': order.status === 'Ready',
+                                                'status-active': order.status === 'Served'
+                                            }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="order.status"></span>
+                                        </td>
+                                        <td class="py-4 px-4 font-semibold">$<span x-text="order.amount"></span></td>
+                                        <td class="py-4 px-4">
+                                            <button class="text-green-600 hover:text-green-800 mr-3">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="text-blue-600 hover:text-blue-800 mr-3">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-red-600 hover:text-red-800">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BILLING -->
+            <div x-show="currentPage === 'billing' && userRole === 'waiter'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div>
+                            <h3 class="text-2xl font-bold text-navy-800 mb-6">Customer Billing</h3>
+                            
+                            <div class="border border-gray-200 rounded-xl p-6">
+                                <div class="mb-6">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Table</label>
+                                    <select class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option>T01 - 2 guests (Pending)</option>
+                                        <option>T02 - 4 guests (Served)</option>
+                                        <option>T04 - 3 guests (Ready)</option>
+                                        <option>T06 - 6 guests (Cooking)</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Customer Name</label>
+                                        <input type="text" placeholder="Enter customer name" class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+                                        <select class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                            <option>Credit Card</option>
+                                            <option>Debit Card</option>
+                                            <option>Cash</option>
+                                            <option>Digital Wallet</option>
+                                            <option>Room Charge</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="lg:col-span-2">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-2xl font-bold text-navy-800">Invoice Details</h3>
+                                <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">
+                                    <i class="fas fa-print mr-2"></i> Print Bill
+                                </button>
+                            </div>
+                            
+                            <div class="border border-gray-200 rounded-xl p-6">
+                                <div class="table-responsive">
+                                    <table class="w-full">
+                                        <thead>
+                                            <tr class="border-b border-gray-200">
+                                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Item</th>
+                                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Quantity</th>
+                                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Price</th>
+                                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr class="border-b border-gray-100 table-row-hover">
+                                                <td class="py-4 px-4">Grilled Salmon</td>
+                                                <td class="py-4 px-4">2</td>
+                                                <td class="py-4 px-4">$28.00</td>
+                                                <td class="py-4 px-4 font-semibold">$56.00</td>
+                                            </tr>
+                                            <tr class="border-b border-gray-100 table-row-hover">
+                                                <td class="py-4 px-4">Caesar Salad</td>
+                                                <td class="py-4 px-4">1</td>
+                                                <td class="py-4 px-4">$12.00</td>
+                                                <td class="py-4 px-4 font-semibold">$12.00</td>
+                                            </tr>
+                                            <tr class="border-b border-gray-100 table-row-hover">
+                                                <td class="py-4 px-4">Red Wine</td>
+                                                <td class="py-4 px-4">1</td>
+                                                <td class="py-4 px-4">$25.00</td>
+                                                <td class="py-4 px-4 font-semibold">$25.00</td>
+                                            </tr>
+                                            <tr class="border-b border-gray-100 table-row-hover">
+                                                <td class="py-4 px-4">Chocolate Cake</td>
+                                                <td class="py-4 px-4">2</td>
+                                                <td class="py-4 px-4">$10.00</td>
+                                                <td class="py-4 px-4 font-semibold">$20.00</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="mt-6 pt-6 border-t border-gray-200">
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-gray-600">Subtotal</span>
+                                        <span class="font-semibold">$113.00</span>
+                                    </div>
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-gray-600">Service Charge (10%)</span>
+                                        <span class="font-semibold">$11.30</span>
+                                    </div>
+                                    <div class="flex justify-between mb-2">
+                                        <span class="text-gray-600">Tax (8%)</span>
+                                        <span class="font-semibold">$9.04</span>
+                                    </div>
+                                    <div class="flex justify-between text-lg font-bold mt-4 pt-4 border-t border-gray-200">
+                                        <span>Total Amount</span>
+                                        <span>$133.34</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-6 flex gap-3">
+                                    <button class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                                        <i class="fas fa-credit-card mr-2"></i> Process Payment
+                                    </button>
+                                    <button class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">
+                                        <i class="fas fa-receipt mr-2"></i> Generate Receipt
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LAUNDRY PAGES -->
+            
+            <!-- LAUNDRY JOBS -->
+            <div x-show="currentPage === 'laundry-jobs' && userRole === 'laundry'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-2xl font-bold text-navy-800">Laundry Jobs</h3>
+                        <div class="flex gap-3">
+                            <button class="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition">
+                                <i class="fas fa-plus mr-2"></i> New Job
+                            </button>
+                            <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                                <i class="fas fa-filter mr-2"></i> Filter
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b border-gray-200">
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Job ID</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Room</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Guest</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Items</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Type</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Delivery</th>
+                                    <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="job in laundryJobs" :key="job.id">
+                                    <tr class="border-b border-gray-100 hover:bg-gray-50 table-row-hover">
+                                        <td class="py-4 px-4 font-medium" x-text="job.id"></td>
+                                        <td class="py-4 px-4">
+                                            <div class="w-8 h-8 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center font-bold" x-text="job.room"></div>
+                                        </td>
+                                        <td class="py-4 px-4" x-text="job.guest"></td>
+                                        <td class="py-4 px-4" x-text="job.items"></td>
+                                        <td class="py-4 px-4">
+                                            <span :class="{
+                                                'bg-blue-100 text-blue-700': job.type === 'Wash & Iron',
+                                                'bg-purple-100 text-purple-700': job.type === 'Dry Clean',
+                                                'bg-green-100 text-green-700': job.type === 'Wash & Fold',
+                                                'bg-gray-100 text-gray-700': job.type === 'Hotel Linen'
+                                            }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="job.type"></span>
+                                        </td>
+                                        <td class="py-4 px-4">
+                                            <span :class="{
+                                                'status-pending': job.status === 'Processing',
+                                                'status-active': job.status === 'Ready',
+                                                'status-processing': job.status === 'Delivered'
+                                            }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="job.status"></span>
+                                        </td>
+                                        <td class="py-4 px-4" x-text="job.delivery"></td>
+                                        <td class="py-4 px-4">
+                                            <button class="text-green-600 hover:text-green-800 mr-3">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button class="text-blue-600 hover:text-blue-800 mr-3">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="text-red-600 hover:text-red-800">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PICKUP SCHEDULE -->
+            <div x-show="currentPage === 'pickup-schedule' && userRole === 'laundry'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <h3 class="text-2xl font-bold text-navy-800 mb-6">Pickup & Delivery Schedule</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="border border-gray-200 rounded-xl p-6 hover-lift">
+                            <h4 class="font-bold text-navy-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-truck text-blue-500"></i>
+                                Morning Pickup
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="p-3 bg-blue-50 rounded-lg">
+                                    <p class="font-semibold">Room 305</p>
+                                    <p class="text-sm text-gray-600">Sarah Johnson</p>
+                                    <p class="text-xs text-blue-600 mt-1"><i class="fas fa-clock mr-1"></i>10:00 AM</p>
+                                </div>
+                                <div class="p-3 bg-blue-50 rounded-lg">
+                                    <p class="font-semibold">Room 412</p>
+                                    <p class="text-sm text-gray-600">Michael Chen</p>
+                                    <p class="text-xs text-blue-600 mt-1"><i class="fas fa-clock mr-1"></i>11:00 AM</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="border border-gray-200 rounded-xl p-6 hover-lift">
+                            <h4 class="font-bold text-navy-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-shipping-fast text-green-500"></i>
+                                Afternoon Delivery
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="p-3 bg-green-50 rounded-lg">
+                                    <p class="font-semibold">Room 208</p>
+                                    <p class="text-sm text-gray-600">Emma Wilson</p>
+                                    <p class="text-xs text-green-600 mt-1"><i class="fas fa-clock mr-1"></i>2:00 PM</p>
+                                </div>
+                                <div class="p-3 bg-green-50 rounded-lg">
+                                    <p class="font-semibold">Room 412</p>
+                                    <p class="text-sm text-gray-600">Michael Chen</p>
+                                    <p class="text-xs text-green-600 mt-1"><i class="fas fa-clock mr-1"></i>3:00 PM</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="border border-gray-200 rounded-xl p-6 hover-lift">
+                            <h4 class="font-bold text-navy-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-truck-loading text-yellow-500"></i>
+                                Evening Pickup
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="p-3 bg-yellow-50 rounded-lg">
+                                    <p class="font-semibold">Room 501</p>
+                                    <p class="text-sm text-gray-600">James Brown</p>
+                                    <p class="text-xs text-yellow-600 mt-1"><i class="fas fa-clock mr-1"></i>6:00 PM</p>
+                                </div>
+                                <div class="p-3 bg-yellow-50 rounded-lg">
+                                    <p class="font-semibold">Room 315</p>
+                                    <p class="text-sm text-gray-600">Previous Guest</p>
+                                    <p class="text-xs text-yellow-600 mt-1"><i class="fas fa-clock mr-1"></i>7:00 PM</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="border border-gray-200 rounded-xl p-6 hover-lift">
+                            <h4 class="font-bold text-navy-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-calendar-check text-purple-500"></i>
+                                Tomorrow's Schedule
+                            </h4>
+                            <div class="space-y-3">
+                                <div class="p-3 bg-purple-50 rounded-lg">
+                                    <p class="font-semibold">8 Rooms</p>
+                                    <p class="text-sm text-gray-600">Morning pickup scheduled</p>
+                                    <p class="text-xs text-purple-600 mt-1"><i class="fas fa-clock mr-1"></i>9:00 AM - 11:00 AM</p>
+                                </div>
+                                <div class="p-3 bg-purple-50 rounded-lg">
+                                    <p class="font-semibold">Hotel Linen</p>
+                                    <p class="text-sm text-gray-600">Bed sheets & towels</p>
+                                    <p class="text-xs text-purple-600 mt-1"><i class="fas fa-clock mr-1"></i>10:00 AM - 12:00 PM</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LAUNDRY INVENTORY -->
+            <div x-show="currentPage === 'laundry-inventory' && userRole === 'laundry'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <h3 class="text-2xl font-bold text-navy-800 mb-6">Laundry Supplies Inventory</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                        <template x-for="item in laundryInventory" :key="item.item">
+                            <div class="border border-gray-200 rounded-xl p-6 hover-lift">
+                                <div class="flex justify-between items-start mb-4">
+                                    <h4 class="font-bold text-navy-800 text-lg" x-text="item.item"></h4>
+                                    <span :class="{
+                                        'status-active': item.status === 'Good',
+                                        'status-pending': item.status === 'Low',
+                                        'bg-red-100 text-red-700': item.status === 'Critical'
+                                    }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="item.status"></span>
+                                </div>
+                                
+                                <div class="mb-4">
+                                    <p class="text-sm text-gray-600 mb-1">Quantity:</p>
+                                    <p class="text-2xl font-bold text-navy-800">
+                                        <span x-text="item.quantity"></span>
+                                        <span class="text-sm text-gray-600 ml-1" x-text="item.unit"></span>
+                                    </p>
+                                </div>
+                                
+                                <div class="flex gap-2">
+                                    <button class="flex-1 px-4 py-2 bg-navy-700 text-white rounded-lg text-sm font-semibold hover:bg-navy-800 transition">
+                                        <i class="fas fa-shopping-cart mr-1"></i> Reorder
+                                    </button>
+                                    <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition">
+                                        <i class="fas fa-chart-line"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <div class="bg-red-50 border border-red-200 rounded-xl p-6">
+                        <h4 class="font-bold text-red-800 mb-2 flex items-center gap-2">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Low Stock Alert
+                        </h4>
+                        <p class="text-red-700 text-sm mb-4">The following items are running low and need to be reordered immediately:</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <template x-for="item in laundryInventory.filter(i => i.status === 'Low')" :key="item.item">
+                                <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-red-200">
+                                    <div>
+                                        <p class="font-semibold text-red-700" x-text="item.item"></p>
+                                        <p class="text-sm text-red-600" x-text="item.quantity + ' ' + item.unit + ' remaining'"></p>
+                                    </div>
+                                    <button class="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-semibold hover:bg-red-200 transition">
+                                        Order Now
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MACHINE STATUS -->
+            <div x-show="currentPage === 'machine-status' && userRole === 'laundry'" class="p-8 fade-in">
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <h3 class="text-2xl font-bold text-navy-800 mb-6">Machine Status</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <template x-for="machine in laundryMachines" :key="machine.id">
+                            <div class="border border-gray-200 rounded-xl p-6 hover-lift">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h4 class="font-bold text-navy-800" x-text="machine.id"></h4>
+                                        <p class="text-sm text-gray-600" x-text="machine.type"></p>
+                                    </div>
+                                    <span :class="{
+                                        'status-active': machine.status === 'Running',
+                                        'status-pending': machine.status === 'Idle',
+                                        'status-processing': machine.status === 'Available'
+                                    }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="machine.status"></span>
+                                </div>
+                                
+                                <div class="space-y-2 mb-4">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-600">Capacity</span>
+                                        <span class="font-semibold" x-text="machine.capacity"></span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-600">Current Cycle</span>
+                                        <span class="font-semibold" x-text="machine.cycle"></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                                    <div :class="{
+                                        'bg-green-500': machine.status === 'Running',
+                                        'bg-yellow-500': machine.status === 'Idle',
+                                        'bg-blue-500': machine.status === 'Available'
+                                    }" class="h-2 rounded-full" :style="machine.status === 'Running' ? 'width: 70%' : 'width: 0%'"></div>
+                                </div>
+                                
+                                <div class="flex gap-2 mt-4">
+                                    <button class="flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200 transition">
+                                        <i class="fas fa-play mr-1"></i> Start
+                                    </button>
+                                    <button class="flex-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-semibold hover:bg-red-200 transition">
+                                        <i class="fas fa-stop mr-1"></i> Stop
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/charts.js"></script>
+</body>
+</html>
