@@ -11,7 +11,109 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .hover-lift {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .table-row-hover {
+            transition: background-color 0.2s ease;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+        }
+        
+        .status-active {
+            background-color: #10b981;
+            color: white;
+        }
+        
+        .status-pending {
+            background-color: #f59e0b;
+            color: white;
+        }
+        
+        .status-processing {
+            background-color: #3b82f6;
+            color: white;
+        }
+        
+        .status-completed {
+            background-color: #8b5cf6;
+            color: white;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 1rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.25rem;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            transition: border-color 0.2s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #d4af37;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+        }
+    </style>
     
     <script>
         tailwind.config = {
@@ -43,6 +145,7 @@
 </head>
 <body class="font-inter bg-gray-50 h-full" x-data="dashboardData" x-init="initCharts()">
     <div class="flex h-full">
+        <!-- Sidebar -->
         <aside class="w-64 bg-gradient-to-b from-navy-800 to-navy-900 flex flex-col shadow-2xl h-full">
             <div class="p-6 border-b border-navy-700">
                 <div class="flex items-center gap-3">
@@ -219,7 +322,7 @@
                             <i class="fas fa-bell text-xl"></i>
                             <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                         </button>
-                        <button class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
+                        <button @click="userRole === 'admin' ? openModal('newBooking') : userRole === 'chef' ? openModal('newKitchenOrder') : userRole === 'waiter' ? openModal('newOrder') : openModal('newLaundryJob')" class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
                             <i class="fas fa-plus mr-2"></i>
                             <span x-text="getNewButtonText()"></span>
                         </button>
@@ -364,30 +467,30 @@
                     <h3 class="text-lg font-bold text-navy-800 mb-4">Quick Actions</h3>
                     <div class="flex flex-wrap gap-3">
                         <template x-if="userRole === 'admin'">
-                            <button class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
+                            <button @click="openModal('newBooking')" class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
                                 <i class="fas fa-plus mr-2"></i> New Booking
                             </button>
                         </template>
                         <template x-if="userRole === 'chef'">
-                            <button class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">
+                            <button @click="openModal('addMenuItem')" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">
                                 <i class="fas fa-plus mr-2"></i> Add Menu Item
                             </button>
                         </template>
                         <template x-if="userRole === 'waiter'">
-                            <button class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                            <button @click="openModal('newOrder')" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
                                 <i class="fas fa-plus mr-2"></i> New Order
                             </button>
                         </template>
                         <template x-if="userRole === 'laundry'">
-                            <button class="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition">
+                            <button @click="openModal('newLaundryJob')" class="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition">
                                 <i class="fas fa-plus mr-2"></i> New Laundry Job
                             </button>
                         </template>
                         
-                        <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                        <button @click="openModal('viewReports')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
                             <i class="fas fa-chart-line mr-2"></i> View Reports
                         </button>
-                        <button class="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-semibold hover:bg-green-200 transition">
+                        <button @click="openModal('printSummary')" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-semibold hover:bg-green-200 transition">
                             <i class="fas fa-print mr-2"></i> Print Summary
                         </button>
                     </div>
@@ -452,7 +555,7 @@
                                 <option>Completed</option>
                             </select>
                         </div>
-                        <button class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
+                        <button @click="openModal('exportBookings')" class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
                             <i class="fas fa-download mr-2"></i>
                             Export
                         </button>
@@ -489,9 +592,9 @@
                                         </td>
                                         <td class="py-4 px-4 text-sm font-semibold text-navy-700 text-right">$<span x-text="booking.amount"></span></td>
                                         <td class="py-4 px-4 text-center">
-                                            <button class="text-navy-600 hover:text-navy-800 mx-1"><i class="fas fa-eye"></i></button>
-                                            <button class="text-blue-600 hover:text-blue-800 mx-1"><i class="fas fa-edit"></i></button>
-                                            <button class="text-red-600 hover:text-red-800 mx-1"><i class="fas fa-trash"></i></button>
+                                            <button @click="openModal('viewBooking')" class="text-navy-600 hover:text-navy-800 mx-1"><i class="fas fa-eye"></i></button>
+                                            <button @click="openModal('editBooking')" class="text-blue-600 hover:text-blue-800 mx-1"><i class="fas fa-edit"></i></button>
+                                            <button @click="openModal('deleteBooking')" class="text-red-600 hover:text-red-800 mx-1"><i class="fas fa-trash"></i></button>
                                         </td>
                                     </tr>
                                 </template>
@@ -514,7 +617,7 @@
                                 <option>Silver</option>
                             </select>
                         </div>
-                        <button class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
+                        <button @click="openModal('addGuest')" class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
                             <i class="fas fa-user-plus mr-2"></i>
                             Add Guest
                         </button>
@@ -556,9 +659,9 @@
                                             }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="guest.tier"></span>
                                         </td>
                                         <td class="py-4 px-4 text-center">
-                                            <button class="text-navy-600 hover:text-navy-800 mx-1"><i class="fas fa-eye"></i></button>
-                                            <button class="text-blue-600 hover:text-blue-800 mx-1"><i class="fas fa-edit"></i></button>
-                                            <button class="text-green-600 hover:text-green-800 mx-1"><i class="fas fa-qrcode"></i></button>
+                                            <button @click="openModal('viewGuest')" class="text-navy-600 hover:text-navy-800 mx-1"><i class="fas fa-eye"></i></button>
+                                            <button @click="openModal('editGuest')" class="text-blue-600 hover:text-blue-800 mx-1"><i class="fas fa-edit"></i></button>
+                                            <button @click="openModal('qrCode')" class="text-green-600 hover:text-green-800 mx-1"><i class="fas fa-qrcode"></i></button>
                                         </td>
                                     </tr>
                                 </template>
@@ -573,10 +676,10 @@
                 <div class="mb-6 flex items-center justify-between">
                     <h2 class="text-2xl font-bold text-navy-800">Room Management</h2>
                     <div class="flex gap-3">
-                        <button class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
+                        <button @click="openModal('addRoom')" class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
                             <i class="fas fa-plus mr-2"></i> Add Room
                         </button>
-                        <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                        <button @click="openModal('filterRooms')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
                             <i class="fas fa-filter mr-2"></i> Filter
                         </button>
                     </div>
@@ -612,10 +715,10 @@
                                 </div>
                             </div>
                             <div class="flex gap-2">
-                                <button class="flex-1 px-4 py-2 bg-navy-700 text-white rounded-lg text-sm font-semibold hover:bg-navy-800 transition">
+                                <button @click="openModal('editRoom')" class="flex-1 px-4 py-2 bg-navy-700 text-white rounded-lg text-sm font-semibold hover:bg-navy-800 transition">
                                     <i class="fas fa-edit mr-1"></i> Edit
                                 </button>
-                                <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition">
+                                <button @click="openModal('viewRoom')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
@@ -662,7 +765,7 @@
                                 <option>Management</option>
                             </select>
                         </div>
-                        <button class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
+                        <button @click="openModal('addStaff')" class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
                             <i class="fas fa-user-plus mr-2"></i>
                             Add Staff
                         </button>
@@ -699,9 +802,9 @@
                                             </div>
                                         </td>
                                         <td class="py-4 px-4 text-center">
-                                            <button class="text-navy-600 hover:text-navy-800 mx-1"><i class="fas fa-eye"></i></button>
-                                            <button class="text-blue-600 hover:text-blue-800 mx-1"><i class="fas fa-edit"></i></button>
-                                            <button class="text-red-600 hover:text-red-800 mx-1"><i class="fas fa-trash"></i></button>
+                                            <button @click="openModal('viewStaff')" class="text-navy-600 hover:text-navy-800 mx-1"><i class="fas fa-eye"></i></button>
+                                            <button @click="openModal('editStaff')" class="text-blue-600 hover:text-blue-800 mx-1"><i class="fas fa-edit"></i></button>
+                                            <button @click="openModal('deleteStaff')" class="text-red-600 hover:text-red-800 mx-1"><i class="fas fa-trash"></i></button>
                                         </td>
                                     </tr>
                                 </template>
@@ -922,19 +1025,19 @@
                         <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
                             <h3 class="text-lg font-bold text-navy-800 mb-6">Quick Actions</h3>
                             <div class="space-y-3">
-                                <button class="w-full px-4 py-3 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition text-left">
+                                <button @click="openModal('exportData')" class="w-full px-4 py-3 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition text-left">
                                     <i class="fas fa-download mr-2"></i>
                                     Export Data
                                 </button>
-                                <button class="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition text-left">
+                                <button @click="openModal('syncDatabase')" class="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition text-left">
                                     <i class="fas fa-sync mr-2"></i>
                                     Sync Database
                                 </button>
-                                <button class="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition text-left">
+                                <button @click="openModal('generateReport')" class="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition text-left">
                                     <i class="fas fa-file-invoice mr-2"></i>
                                     Generate Report
                                 </button>
-                                <button class="w-full px-4 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition text-left">
+                                <button @click="openModal('clearCache')" class="w-full px-4 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition text-left">
                                     <i class="fas fa-trash mr-2"></i>
                                     Clear Cache
                                 </button>
@@ -952,10 +1055,10 @@
                     <div class="flex items-center justify-between mb-6">
                         <h3 class="text-2xl font-bold text-navy-800">Kitchen Orders</h3>
                         <div class="flex gap-3">
-                            <button class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">
+                            <button @click="openModal('newKitchenOrder')" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">
                                 <i class="fas fa-plus mr-2"></i> New Order
                             </button>
-                            <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                            <button @click="openModal('filterOrders')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
                                 <i class="fas fa-filter mr-2"></i> Filter
                             </button>
                         </div>
@@ -998,10 +1101,10 @@
                                 
                                 <div class="mt-4 pt-4 border-t border-gray-100">
                                     <div class="flex gap-2">
-                                        <button class="flex-1 px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-semibold hover:bg-green-200 transition">
+                                        <button @click="openModal('markReady')" class="flex-1 px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-semibold hover:bg-green-200 transition">
                                             <i class="fas fa-check mr-1"></i> Ready
                                         </button>
-                                        <button class="flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200 transition">
+                                        <button @click="openModal('updateOrder')" class="flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200 transition">
                                             <i class="fas fa-edit mr-1"></i> Update
                                         </button>
                                     </div>
@@ -1018,10 +1121,10 @@
                     <div class="flex items-center justify-between mb-6">
                         <h3 class="text-2xl font-bold text-navy-800">Menu Management</h3>
                         <div class="flex gap-3">
-                            <button class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">
+                            <button @click="openModal('addMenuItem')" class="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">
                                 <i class="fas fa-plus mr-2"></i> Add Item
                             </button>
-                            <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                            <button @click="openModal('printMenu')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
                                 <i class="fas fa-print mr-2"></i> Print Menu
                             </button>
                         </div>
@@ -1057,13 +1160,13 @@
                                         </td>
                                         <td class="py-4 px-4" x-text="item.prepTime"></td>
                                         <td class="py-4 px-4">
-                                            <button class="text-blue-600 hover:text-blue-800 mr-3">
+                                            <button @click="openModal('editMenuItem')" class="text-blue-600 hover:text-blue-800 mr-3">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button class="text-green-600 hover:text-green-800 mr-3">
+                                            <button @click="openModal('toggleItem')" class="text-green-600 hover:text-green-800 mr-3">
                                                 <i class="fas fa-toggle-on"></i>
                                             </button>
-                                            <button class="text-red-600 hover:text-red-800">
+                                            <button @click="openModal('deleteMenuItem')" class="text-red-600 hover:text-red-800">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </td>
@@ -1100,10 +1203,10 @@
                                 </div>
                                 
                                 <div class="flex gap-2">
-                                    <button class="flex-1 px-4 py-2 bg-navy-700 text-white rounded-lg text-sm font-semibold hover:bg-navy-800 transition">
+                                    <button @click="openModal('reorderItem')" class="flex-1 px-4 py-2 bg-navy-700 text-white rounded-lg text-sm font-semibold hover:bg-navy-800 transition">
                                         <i class="fas fa-shopping-cart mr-1"></i> Reorder
                                     </button>
-                                    <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition">
+                                    <button @click="openModal('inventoryChart')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition">
                                         <i class="fas fa-chart-line"></i>
                                     </button>
                                 </div>
@@ -1210,7 +1313,7 @@
                                 'bg-green-50 border-green-200 hover:bg-green-100': table.status === 'Available',
                                 'bg-blue-50 border-blue-200 hover:bg-blue-100': table.status === 'Occupied',
                                 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100': table.status === 'Reserved'
-                            }" class="border rounded-xl p-6 text-center cursor-pointer transition hover-lift">
+                            }" class="border rounded-xl p-6 text-center cursor-pointer transition hover-lift" @click="openModal('tableDetails')">
                                 <div class="text-4xl font-bold mb-2" x-text="table.table"></div>
                                 <div class="mb-2">
                                     <span :class="{
@@ -1261,7 +1364,7 @@
                                                 'bg-green-100 text-green-700': item.category === 'Appetizer',
                                                 'bg-purple-100 text-purple-700': item.category === 'Beverage'
                                             }" class="px-2 py-1 rounded-full text-xs" x-text="item.category"></span>
-                                            <button class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200 transition">
+                                            <button @click="openModal('addToOrder')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200 transition">
                                                 <i class="fas fa-plus mr-1"></i> Add
                                             </button>
                                         </div>
@@ -1324,7 +1427,7 @@
                                         </div>
                                     </div>
                                     
-                                    <button class="w-full mt-6 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                                    <button @click="openModal('submitOrder')" class="w-full mt-6 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
                                         <i class="fas fa-paper-plane mr-2"></i> Submit Order
                                     </button>
                                 </div>
@@ -1368,13 +1471,13 @@
                                         </td>
                                         <td class="py-4 px-4 font-semibold">$<span x-text="order.amount"></span></td>
                                         <td class="py-4 px-4">
-                                            <button class="text-green-600 hover:text-green-800 mr-3">
+                                            <button @click="openModal('completeOrder')" class="text-green-600 hover:text-green-800 mr-3">
                                                 <i class="fas fa-check"></i>
                                             </button>
-                                            <button class="text-blue-600 hover:text-blue-800 mr-3">
+                                            <button @click="openModal('editOrder')" class="text-blue-600 hover:text-blue-800 mr-3">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button class="text-red-600 hover:text-red-800">
+                                            <button @click="openModal('cancelOrder')" class="text-red-600 hover:text-red-800">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </td>
@@ -1427,7 +1530,7 @@
                         <div class="lg:col-span-2">
                             <div class="flex justify-between items-center mb-6">
                                 <h3 class="text-2xl font-bold text-navy-800">Invoice Details</h3>
-                                <button class="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">
+                                <button @click="openModal('printBill')" class="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">
                                     <i class="fas fa-print mr-2"></i> Print Bill
                                 </button>
                             </div>
@@ -1492,10 +1595,10 @@
                                 </div>
                                 
                                 <div class="mt-6 flex gap-3">
-                                    <button class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                                    <button @click="openModal('processPayment')" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
                                         <i class="fas fa-credit-card mr-2"></i> Process Payment
                                     </button>
-                                    <button class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">
+                                    <button @click="openModal('generateReceipt')" class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">
                                         <i class="fas fa-receipt mr-2"></i> Generate Receipt
                                     </button>
                                 </div>
@@ -1513,10 +1616,10 @@
                     <div class="flex items-center justify-between mb-6">
                         <h3 class="text-2xl font-bold text-navy-800">Laundry Jobs</h3>
                         <div class="flex gap-3">
-                            <button class="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition">
+                            <button @click="openModal('newLaundryJob')" class="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition">
                                 <i class="fas fa-plus mr-2"></i> New Job
                             </button>
-                            <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                            <button @click="openModal('filterLaundryJobs')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
                                 <i class="fas fa-filter mr-2"></i> Filter
                             </button>
                         </div>
@@ -1562,13 +1665,13 @@
                                         </td>
                                         <td class="py-4 px-4" x-text="job.delivery"></td>
                                         <td class="py-4 px-4">
-                                            <button class="text-green-600 hover:text-green-800 mr-3">
+                                            <button @click="openModal('completeJob')" class="text-green-600 hover:text-green-800 mr-3">
                                                 <i class="fas fa-check"></i>
                                             </button>
-                                            <button class="text-blue-600 hover:text-blue-800 mr-3">
+                                            <button @click="openModal('editJob')" class="text-blue-600 hover:text-blue-800 mr-3">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button class="text-red-600 hover:text-red-800">
+                                            <button @click="openModal('cancelJob')" class="text-red-600 hover:text-red-800">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </td>
@@ -1691,10 +1794,10 @@
                                 </div>
                                 
                                 <div class="flex gap-2">
-                                    <button class="flex-1 px-4 py-2 bg-navy-700 text-white rounded-lg text-sm font-semibold hover:bg-navy-800 transition">
+                                    <button @click="openModal('reorderLaundryItem')" class="flex-1 px-4 py-2 bg-navy-700 text-white rounded-lg text-sm font-semibold hover:bg-navy-800 transition">
                                         <i class="fas fa-shopping-cart mr-1"></i> Reorder
                                     </button>
-                                    <button class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition">
+                                    <button @click="openModal('inventoryChart')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition">
                                         <i class="fas fa-chart-line"></i>
                                     </button>
                                 </div>
@@ -1715,7 +1818,7 @@
                                         <p class="font-semibold text-red-700" x-text="item.item"></p>
                                         <p class="text-sm text-red-600" x-text="item.quantity + ' ' + item.unit + ' remaining'"></p>
                                     </div>
-                                    <button class="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-semibold hover:bg-red-200 transition">
+                                    <button @click="openModal('orderNow')" class="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-semibold hover:bg-red-200 transition">
                                         Order Now
                                     </button>
                                 </div>
@@ -1765,10 +1868,10 @@
                                 </div>
                                 
                                 <div class="flex gap-2 mt-4">
-                                    <button class="flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200 transition">
+                                    <button @click="openModal('startMachine')" class="flex-1 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200 transition">
                                         <i class="fas fa-play mr-1"></i> Start
                                     </button>
-                                    <button class="flex-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-semibold hover:bg-red-200 transition">
+                                    <button @click="openModal('stopMachine')" class="flex-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-semibold hover:bg-red-200 transition">
                                         <i class="fas fa-stop mr-1"></i> Stop
                                     </button>
                                 </div>
@@ -1781,7 +1884,1063 @@
         </main>
     </div>
 
-    <script src="assets/js/main.js"></script>
-    <script src="assets/js/charts.js"></script>
+    <!-- Modal System -->
+    <template x-if="activeModal">
+        <div class="modal-overlay" @click="closeModal">
+            <div class="modal-content" @click.stop>
+                <!-- Dynamic modal content based on activeModal value -->
+                <div x-show="activeModal === 'newBooking'">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-navy-800">New Booking</h3>
+                            <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="form-group">
+                                <label class="form-label">Guest Name</label>
+                                <input type="text" class="form-input" placeholder="Enter guest name">
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="form-group">
+                                    <label class="form-label">Check-in Date</label>
+                                    <input type="date" class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Check-out Date</label>
+                                    <input type="date" class="form-input">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Room Type</label>
+                                <select class="form-input">
+                                    <option>Deluxe Suite</option>
+                                    <option>Executive Suite</option>
+                                    <option>Presidential Suite</option>
+                                    <option>Standard Room</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Special Requests</label>
+                                <textarea class="form-input" rows="3" placeholder="Any special requests?"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 mt-8">
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">Create Booking</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeModal === 'viewReports'">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-navy-800">View Reports</h3>
+                            <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="form-group">
+                                <label class="form-label">Report Type</label>
+                                <select class="form-input">
+                                    <option>Revenue Report</option>
+                                    <option>Occupancy Report</option>
+                                    <option>Guest Statistics</option>
+                                    <option>Staff Performance</option>
+                                    <option>Financial Summary</option>
+                                </select>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="form-group">
+                                    <label class="form-label">Start Date</label>
+                                    <input type="date" class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">End Date</label>
+                                    <input type="date" class="form-input">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Format</label>
+                                <select class="form-input">
+                                    <option>PDF</option>
+                                    <option>Excel</option>
+                                    <option>CSV</option>
+                                    <option>Print</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 mt-8">
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">Generate Report</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeModal === 'addGuest'">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-navy-800">Add New Guest</h3>
+                            <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="form-group">
+                                    <label class="form-label">First Name</label>
+                                    <input type="text" class="form-input" placeholder="John">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Last Name</label>
+                                    <input type="text" class="form-input" placeholder="Doe">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-input" placeholder="john.doe@example.com">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Phone</label>
+                                <input type="tel" class="form-input" placeholder="+1 (555) 123-4567">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Loyalty Tier</label>
+                                <select class="form-input">
+                                    <option>Silver</option>
+                                    <option>Gold</option>
+                                    <option>Platinum</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 mt-8">
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">Add Guest</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeModal === 'addStaff'">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-navy-800">Add New Staff</h3>
+                            <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="form-group">
+                                    <label class="form-label">First Name</label>
+                                    <input type="text" class="form-input" placeholder="John">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Last Name</label>
+                                    <input type="text" class="form-input" placeholder="Doe">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Role</label>
+                                <select class="form-input">
+                                    <option>Receptionist</option>
+                                    <option>Housekeeper</option>
+                                    <option>Chef</option>
+                                    <option>Waiter</option>
+                                    <option>Manager</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Department</label>
+                                <select class="form-input">
+                                    <option>Front Desk</option>
+                                    <option>Housekeeping</option>
+                                    <option>Kitchen</option>
+                                    <option>Restaurant</option>
+                                    <option>Management</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Shift</label>
+                                <select class="form-input">
+                                    <option>Morning (6 AM - 2 PM)</option>
+                                    <option>Afternoon (2 PM - 10 PM)</option>
+                                    <option>Night (10 PM - 6 AM)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 mt-8">
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">Add Staff</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeModal === 'addRoom'">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-navy-800">Add New Room</h3>
+                            <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="form-group">
+                                <label class="form-label">Room Number</label>
+                                <input type="text" class="form-input" placeholder="e.g., 101">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Room Type</label>
+                                <select class="form-input">
+                                    <option>Standard Room</option>
+                                    <option>Deluxe Suite</option>
+                                    <option>Executive Suite</option>
+                                    <option>Presidential Suite</option>
+                                    <option>Family Room</option>
+                                </select>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="form-group">
+                                    <label class="form-label">Floor</label>
+                                    <input type="number" class="form-input" placeholder="1">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Price per Night ($)</label>
+                                    <input type="number" class="form-input" placeholder="250">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Amenities</label>
+                                <div class="space-y-2">
+                                    <div class="flex items-center">
+                                        <input type="checkbox" class="mr-2">
+                                        <span class="text-sm">Wi-Fi</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" class="mr-2">
+                                        <span class="text-sm">Mini Bar</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" class="mr-2">
+                                        <span class="text-sm">Room Service</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <input type="checkbox" class="mr-2">
+                                        <span class="text-sm">Sea View</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 mt-8">
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">Add Room</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeModal === 'addMenuItem'">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-navy-800">Add Menu Item</h3>
+                            <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="form-group">
+                                <label class="form-label">Item Name</label>
+                                <input type="text" class="form-input" placeholder="e.g., Grilled Salmon">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Category</label>
+                                <select class="form-input">
+                                    <option>Main Course</option>
+                                    <option>Appetizer</option>
+                                    <option>Dessert</option>
+                                    <option>Beverage</option>
+                                    <option>Side Dish</option>
+                                </select>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="form-group">
+                                    <label class="form-label">Price ($)</label>
+                                    <input type="number" step="0.01" class="form-input" placeholder="24.99">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Prep Time (minutes)</label>
+                                    <input type="number" class="form-input" placeholder="25">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-input" rows="3" placeholder="Describe the dish..."></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Ingredients</label>
+                                <textarea class="form-input" rows="2" placeholder="List main ingredients..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 mt-8">
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">Add Menu Item</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeModal === 'newOrder'">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-navy-800">New Order</h3>
+                            <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="form-group">
+                                <label class="form-label">Table Number</label>
+                                <select class="form-input">
+                                    <option>T01</option>
+                                    <option>T02</option>
+                                    <option>T03</option>
+                                    <option>T04</option>
+                                    <option>T05</option>
+                                    <option>T06</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Guest Count</label>
+                                <input type="number" class="form-input" placeholder="2" min="1" max="12">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Select Items</label>
+                                <div class="space-y-2 max-h-60 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                                    <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                                        <div>
+                                            <span class="font-medium">Grilled Salmon</span>
+                                            <span class="text-sm text-gray-600 ml-2">$28.00</span>
+                                        </div>
+                                        <input type="number" class="w-16 px-2 py-1 border border-gray-300 rounded" min="0" value="0">
+                                    </div>
+                                    <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                                        <div>
+                                            <span class="font-medium">Caesar Salad</span>
+                                            <span class="text-sm text-gray-600 ml-2">$12.00</span>
+                                        </div>
+                                        <input type="number" class="w-16 px-2 py-1 border border-gray-300 rounded" min="0" value="0">
+                                    </div>
+                                    <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                                        <div>
+                                            <span class="font-medium">Pasta Carbonara</span>
+                                            <span class="text-sm text-gray-600 ml-2">$22.00</span>
+                                        </div>
+                                        <input type="number" class="w-16 px-2 py-1 border border-gray-300 rounded" min="0" value="0">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Special Instructions</label>
+                                <textarea class="form-input" rows="2" placeholder="Any special requests?"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 mt-8">
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">Place Order</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeModal === 'newLaundryJob'">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-navy-800">New Laundry Job</h3>
+                            <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="form-group">
+                                <label class="form-label">Room Number</label>
+                                <input type="text" class="form-input" placeholder="e.g., 305">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Guest Name</label>
+                                <input type="text" class="form-input" placeholder="Enter guest name">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Service Type</label>
+                                <select class="form-input">
+                                    <option>Wash & Iron</option>
+                                    <option>Dry Clean</option>
+                                    <option>Wash & Fold</option>
+                                    <option>Hotel Linen</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Items</label>
+                                <textarea class="form-input" rows="3" placeholder="List items (e.g., 2 shirts, 1 pants, 3 towels)"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Pickup Time</label>
+                                <input type="datetime-local" class="form-input">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Special Instructions</label>
+                                <textarea class="form-input" rows="2" placeholder="Any special instructions?"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 mt-8">
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition">Create Job</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generic Info Modal -->
+<div x-show="activeModal === 'viewBooking' || activeModal === 'viewGuest' || activeModal === 'viewRoom' || 
+activeModal === 'viewStaff' || activeModal === 'tableDetails' || activeModal === 'inventoryChart'">
+<div class="p-6">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl font-bold text-navy-800" x-text="'View Details'"></h3>
+<button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+   <i class="fas fa-times text-xl"></i>
+</button>
+</div>
+
+<div class="space-y-4">
+<div class="text-center">
+   <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+       <i class="fas fa-info-circle text-blue-600 text-2xl"></i>
+   </div>
+   <p class="text-gray-600 mb-4">This feature would display detailed information about the selected item.</p>
+</div>
+</div>
+
+<div class="flex gap-3 mt-8">
+<button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Close</button>
+</div>
+</div>
+</div>
+
+<!-- Generic Edit Modal -->
+<div x-show="activeModal === 'editBooking' || activeModal === 'editGuest' || activeModal === 'editRoom' || 
+activeModal === 'editStaff' || activeModal === 'editMenuItem' || activeModal === 'updateOrder' ||
+activeModal === 'editOrder' || activeModal === 'editJob'">
+<div class="p-6">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl font-bold text-navy-800" x-text="'Edit Item'"></h3>
+<button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+   <i class="fas fa-times text-xl"></i>
+</button>
+</div>
+
+<div class="space-y-4">
+<div class="text-center">
+   <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+       <i class="fas fa-edit text-yellow-600 text-2xl"></i>
+   </div>
+   <p class="text-gray-600 mb-4">This feature would allow you to edit the selected item.</p>
+</div>
+</div>
+
+<div class="flex gap-3 mt-8">
+<button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+<button @click="closeModal" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">Save Changes</button>
+</div>
+</div>
+</div>
+
+<!-- Generic Filter Modal -->
+<div x-show="activeModal === 'filterRooms' || activeModal === 'filterOrders' || activeModal === 'filterLaundryJobs'">
+<div class="p-6">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl font-bold text-navy-800" x-text="'Filter Options'"></h3>
+<button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+   <i class="fas fa-times text-xl"></i>
+</button>
+</div>
+
+<div class="space-y-4">
+<div class="form-group">
+   <label class="form-label">Filter by Status</label>
+   <select class="form-input">
+       <option>All</option>
+       <option>Active</option>
+       <option>Pending</option>
+       <option>Completed</option>
+   </select>
+</div>
+
+<div class="form-group">
+   <label class="form-label">Date Range</label>
+   <div class="grid grid-cols-2 gap-4">
+       <input type="date" class="form-input" placeholder="From">
+       <input type="date" class="form-input" placeholder="To">
+   </div>
+</div>
+</div>
+
+<div class="flex gap-3 mt-8">
+<button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+<button @click="closeModal" class="flex-1 px-4 py-3 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">Apply Filter</button>
+</div>
+</div>
+</div>
+
+<!-- Generic Action Modal -->
+<div x-show="activeModal === 'qrCode' || activeModal === 'printMenu' || activeModal === 'toggleItem' || 
+activeModal === 'reorderItem' || activeModal === 'markReady' || activeModal === 'completeOrder' ||
+activeModal === 'cancelOrder' || activeModal === 'printBill' || activeModal === 'processPayment' ||
+activeModal === 'generateReceipt' || activeModal === 'completeJob' || activeModal === 'cancelJob' ||
+activeModal === 'reorderLaundryItem' || activeModal === 'orderNow' || activeModal === 'startMachine' ||
+activeModal === 'stopMachine' || activeModal === 'exportBookings'">
+<div class="p-6">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-xl font-bold text-navy-800" x-text="'Action Required'"></h3>
+<button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+   <i class="fas fa-times text-xl"></i>
+</button>
+</div>
+
+<div class="space-y-4">
+<div class="text-center">
+   <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+       <i class="fas fa-cog text-green-600 text-2xl"></i>
+   </div>
+   <p class="text-gray-600 mb-4">This action would be performed on the selected item.</p>
+</div>
+</div>
+
+<div class="flex gap-3 mt-8">
+<button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+<button @click="closeModal" class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">Confirm</button>
+</div>
+</div>
+</div>
+
+<!-- New Kitchen Order Modal for Chef -->
+<div x-show="activeModal === 'newKitchenOrder'">
+    <div class="p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-navy-800">New Kitchen Order</h3>
+            <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="form-group">
+                <label class="form-label">Guest Name / Room</label>
+                <input type="text" class="form-input" placeholder="e.g., John Smith (Room 305)">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Order Items</label>
+                <textarea class="form-input" rows="4" placeholder="Enter order items..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Priority</label>
+                <select class="form-input">
+                    <option>Normal</option>
+                    <option>High</option>
+                    <option>Urgent</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Special Instructions</label>
+                <textarea class="form-input" rows="2" placeholder="Any special cooking instructions?"></textarea>
+            </div>
+        </div>
+        
+        <div class="flex gap-3 mt-8">
+            <button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+            <button @click="closeModal" class="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">Create Order</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add to Order Modal (for waiter menu items) -->
+<div x-show="activeModal === 'addToOrder'">
+    <div class="p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-navy-800">Add to Order</h3>
+            <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="form-group">
+                <label class="form-label">Item</label>
+                <input type="text" class="form-input" value="Grilled Salmon" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Quantity</label>
+                <input type="number" class="form-input" value="1" min="1" max="10">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Special Instructions</label>
+                <textarea class="form-input" rows="2" placeholder="Any special requests?"></textarea>
+            </div>
+        </div>
+        
+        <div class="flex gap-3 mt-8">
+            <button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+            <button @click="closeModal" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">Add to Order</button>
+        </div>
+    </div>
+</div>
+
+<!-- Submit Order Modal (for waiter) -->
+<div x-show="activeModal === 'submitOrder'">
+    <div class="p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-navy-800">Submit Order</h3>
+            <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-paper-plane text-green-600 text-2xl"></i>
+                </div>
+                <p class="text-gray-600 mb-4">Submit this order to the kitchen?</p>
+                <p class="font-semibold">Total: $63.80</p>
+                <p class="text-sm text-gray-600">Table T01 • 2 guests</p>
+            </div>
+        </div>
+        
+        <div class="flex gap-3 mt-8">
+            <button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+            <button @click="closeModal" class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">Submit to Kitchen</button>
+        </div>
+    </div>
+</div>
+
+                <!-- Confirmation Modal Template -->
+                <div x-show="activeModal === 'deleteBooking' || activeModal === 'deleteStaff' || activeModal === 'deleteMenuItem'">
+                    <div class="p-6">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-navy-800 mb-2">Confirm Deletion</h3>
+                            <p class="text-gray-600 mb-6">Are you sure you want to delete this item? This action cannot be undone.</p>
+                        </div>
+                        
+                        <div class="flex gap-3">
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">Cancel</button>
+                            <button @click="closeModal" class="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">Delete</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generic Success Modal -->
+                <div x-show="activeModal === 'success'">
+                    <div class="p-6">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-check text-green-600 text-2xl"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-navy-800 mb-2">Success!</h3>
+                            <p class="text-gray-600 mb-6">Operation completed successfully.</p>
+                        </div>
+                        
+                        <button @click="closeModal" class="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">OK</button>
+                    </div>
+                </div>
+
+                <!-- Generic Error Modal -->
+                <div x-show="activeModal === 'error'">
+                    <div class="p-6">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <i class="fas fa-times text-red-600 text-2xl"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-navy-800 mb-2">Error</h3>
+                            <p class="text-gray-600 mb-6" x-text="errorMessage"></p>
+                        </div>
+                        
+                        <button @click="closeModal" class="w-full px-4 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition">OK</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </template>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('dashboardData', () => ({
+                currentPage: 'dashboard',
+                userRole: 'admin',
+                activeModal: null,
+                errorMessage: '',
+                
+                // Statistics
+                stats: {
+                    totalRevenue: 245680,
+                    activeGuests: 42,
+                    totalBookings: 156,
+                    occupancyRate: 85.5
+                },
+                
+                // Sample data arrays
+                recentBookings: [
+                    { id: 'BK001', guest: 'John Smith', room: 'Deluxe Suite', checkin: '2024-01-15', checkout: '2024-01-20', status: 'active', amount: 1250 },
+                    { id: 'BK002', guest: 'Emma Wilson', room: 'Executive', checkin: '2024-01-16', checkout: '2024-01-18', status: 'confirmed', amount: 850 },
+                    { id: 'BK003', guest: 'Robert Chen', room: 'Standard', checkin: '2024-01-14', checkout: '2024-01-17', status: 'pending', amount: 450 },
+                    { id: 'BK004', guest: 'Sarah Johnson', room: 'Presidential', checkin: '2024-01-13', checkout: '2024-01-19', status: 'completed', amount: 3200 },
+                    { id: 'BK005', guest: 'Michael Brown', room: 'Deluxe Suite', checkin: '2024-01-17', checkout: '2024-01-22', status: 'active', amount: 1750 }
+                ],
+                
+                guests: [
+                    { id: 1, name: 'John Smith', email: 'john@email.com', phone: '+1 555-1234', room: '301', checkin: '2024-01-15', status: 'checked-in', tier: 'Gold' },
+                    { id: 2, name: 'Emma Wilson', email: 'emma@email.com', phone: '+1 555-5678', room: '205', checkin: '2024-01-16', status: 'confirmed', tier: 'Platinum' },
+                    { id: 3, name: 'Robert Chen', email: 'robert@email.com', phone: '+1 555-9012', room: '412', checkin: '2024-01-14', status: 'checked-in', tier: 'Silver' },
+                    { id: 4, name: 'Sarah Johnson', email: 'sarah@email.com', phone: '+1 555-3456', room: '501', checkin: '2024-01-13', status: 'pending', tier: 'Gold' },
+                    { id: 5, name: 'Michael Brown', email: 'michael@email.com', phone: '+1 555-7890', room: '305', checkin: '2024-01-17', status: 'checked-in', tier: 'Platinum' }
+                ],
+                
+                rooms: [
+                    { id: 1, number: '101', type: 'Standard Room', floor: '1', price: 150, status: 'available' },
+                    { id: 2, number: '205', type: 'Deluxe Suite', floor: '2', price: 300, status: 'occupied', guest: 'Emma Wilson' },
+                    { id: 3, number: '301', type: 'Executive Suite', floor: '3', price: 450, status: 'occupied', guest: 'John Smith' },
+                    { id: 4, number: '412', type: 'Standard Room', floor: '4', price: 150, status: 'occupied', guest: 'Robert Chen' },
+                    { id: 5, number: '501', type: 'Presidential Suite', floor: '5', price: 800, status: 'reserved' },
+                    { id: 6, number: '305', type: 'Deluxe Suite', floor: '3', price: 300, status: 'cleaning' }
+                ],
+                
+                staff: [
+                    { id: 1, name: 'David Lee', role: 'Manager', department: 'Management', shift: 'Day', status: 'Active', performance: 95 },
+                    { id: 2, name: 'Maria Garcia', role: 'Receptionist', department: 'Front Desk', shift: 'Morning', status: 'Active', performance: 88 },
+                    { id: 3, name: 'James Wilson', role: 'Housekeeper', department: 'Housekeeping', shift: 'Day', status: 'Active', performance: 92 },
+                    { id: 4, name: 'Lisa Wang', role: 'Chef', department: 'Kitchen', shift: 'Evening', status: 'Active', performance: 90 }
+                ],
+                
+                services: [
+                    { id: 1, name: 'Room Service', requests: 156, completed: 142, pending: 14, avgTime: '25 min' },
+                    { id: 2, name: 'Spa & Wellness', requests: 89, completed: 85, pending: 4, avgTime: '60 min' },
+                    { id: 3, name: 'Laundry', requests: 203, completed: 195, pending: 8, avgTime: '4 hours' }
+                ],
+                
+                transactions: [
+                    { id: 1, type: 'Room Booking', guest: 'John Smith', amount: 1250, date: '2024-01-15' },
+                    { id: 2, type: 'Restaurant', guest: 'Emma Wilson', amount: 156, date: '2024-01-16' },
+                    { id: 3, type: 'Spa Service', guest: 'Robert Chen', amount: 220, date: '2024-01-14' },
+                    { id: 4, type: 'Room Service', guest: 'Sarah Johnson', amount: 85, date: '2024-01-13' }
+                ],
+                
+                // Chef data
+                chefOrders: [
+                    { id: 'KO001', guest: 'John Smith', room: '301', items: 'Grilled Salmon x2, Caesar Salad', priority: 'High', status: 'Cooking', time: '12:30 PM' },
+                    { id: 'KO002', guest: 'Emma Wilson', room: '205', items: 'Pasta Carbonara, Red Wine', priority: 'Normal', status: 'Pending', time: '12:45 PM' },
+                    { id: 'KO003', guest: 'Room Service', room: '412', items: 'Club Sandwich, French Fries', priority: 'Low', status: 'Ready', time: '1:00 PM' }
+                ],
+                
+                chefMenu: [
+                    { id: 1, name: 'Grilled Salmon', category: 'Main Course', price: 28, status: 'Available', prepTime: '25 min' },
+                    { id: 2, name: 'Caesar Salad', category: 'Appetizer', price: 12, status: 'Available', prepTime: '15 min' },
+                    { id: 3, name: 'Pasta Carbonara', category: 'Main Course', price: 22, status: 'Available', prepTime: '20 min' },
+                    { id: 4, name: 'Chocolate Cake', category: 'Dessert', price: 10, status: 'Available', prepTime: '10 min' }
+                ],
+                
+                chefInventory: [
+                    { item: 'Salmon', quantity: 12, unit: 'kg', lowStock: false },
+                    { item: 'Pasta', quantity: 25, unit: 'kg', lowStock: false },
+                    { item: 'Lettuce', quantity: 8, unit: 'kg', lowStock: true },
+                    { item: 'Olive Oil', quantity: 15, unit: 'L', lowStock: false },
+                    { item: 'Garlic', quantity: 3, unit: 'kg', lowStock: true },
+                    { item: 'Chicken Breast', quantity: 20, unit: 'kg', lowStock: false }
+                ],
+                
+                // Waiter data
+                waiterTables: [
+                    { table: 'T01', status: 'Available', guests: 0, order: 'None', time: '' },
+                    { table: 'T02', status: 'Occupied', guests: 4, order: 'Pending', time: '45 min' },
+                    { table: 'T03', status: 'Available', guests: 0, order: 'None', time: '' },
+                    { table: 'T04', status: 'Occupied', guests: 2, order: 'Served', time: '20 min' },
+                    { table: 'T05', status: 'Reserved', guests: 6, order: 'None', time: '7:00 PM' },
+                    { table: 'T06', status: 'Occupied', guests: 3, order: 'Ready', time: '15 min' }
+                ],
+                
+                waiterMenuItems: [
+                    { id: 1, name: 'Grilled Salmon', category: 'Main', price: 28 },
+                    { id: 2, name: 'Caesar Salad', category: 'Appetizer', price: 12 },
+                    { id: 3, name: 'Pasta Carbonara', category: 'Main', price: 22 },
+                    { id: 4, name: 'Red Wine', category: 'Beverage', price: 25 },
+                    { id: 5, name: 'Chocolate Cake', category: 'Dessert', price: 10 },
+                    { id: 6, name: 'Club Sandwich', category: 'Main', price: 16 }
+                ],
+                
+                waiterOrders: [
+                    { id: 'WO001', table: 'T02', items: 'Grilled Salmon x2, Caesar Salad', status: 'Pending', amount: 68 },
+                    { id: 'WO002', table: 'T04', items: 'Pasta Carbonara, Red Wine', status: 'Served', amount: 47 },
+                    { id: 'WO003', table: 'T06', items: 'Club Sandwich x3', status: 'Ready', amount: 48 }
+                ],
+                
+                // Laundry data
+                laundryJobs: [
+                    { id: 'LJ001', room: '305', guest: 'Sarah Johnson', items: '2 shirts, 1 pants', type: 'Wash & Iron', status: 'Processing', delivery: 'Today 3 PM' },
+                    { id: 'LJ002', room: '412', guest: 'Michael Chen', items: '3 towels, 1 robe', type: 'Wash & Fold', status: 'Ready', delivery: 'Today 4 PM' },
+                    { id: 'LJ003', room: '208', guest: 'Emma Wilson', items: '1 suit', type: 'Dry Clean', status: 'Delivered', delivery: 'Completed' },
+                    { id: 'LJ004', room: 'Hotel', guest: 'Hotel Linen', items: '50 bedsheets', type: 'Hotel Linen', status: 'Processing', delivery: 'Tomorrow 10 AM' }
+                ],
+                
+                laundryInventory: [
+                    { item: 'Detergent', quantity: 45, unit: 'L', status: 'Good' },
+                    { item: 'Fabric Softener', quantity: 32, unit: 'L', status: 'Good' },
+                    { item: 'Bleach', quantity: 18, unit: 'L', status: 'Low' },
+                    { item: 'Dryer Sheets', quantity: 12, unit: 'packs', status: 'Critical' },
+                    { item: 'Starch', quantity: 25, unit: 'L', status: 'Good' },
+                    { item: 'Plastic Covers', quantity: 150, unit: 'pieces', status: 'Good' }
+                ],
+                
+                laundryMachines: [
+                    { id: 'WM-01', type: 'Washing Machine', status: 'Running', capacity: '10 kg', cycle: 'Wash' },
+                    { id: 'WM-02', type: 'Washing Machine', status: 'Idle', capacity: '15 kg', cycle: 'None' },
+                    { id: 'DR-01', type: 'Dryer', status: 'Available', capacity: '12 kg', cycle: 'None' },
+                    { id: 'IR-01', type: 'Ironing Machine', status: 'Running', capacity: 'N/A', cycle: 'Ironing' }
+                ],
+                
+                // Methods
+                initCharts() {
+                    // Initialize charts
+                    setTimeout(() => {
+                        this.createRevenueChart();
+                        this.createOccupancyChart();
+                        this.createRoomStatusChart();
+                        this.createDemographicsChart();
+                    }, 100);
+                },
+                
+                createRevenueChart() {
+                    const ctx = document.getElementById('revenueChart');
+                    if (ctx) {
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                                datasets: [{
+                                    label: 'Revenue',
+                                    data: [120000, 145000, 180000, 165000, 210000, 245000],
+                                    borderColor: '#d4af37',
+                                    backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } }
+                            }
+                        });
+                    }
+                },
+                
+                createOccupancyChart() {
+                    const ctx = document.getElementById('occupancyChart');
+                    if (ctx) {
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                                datasets: [{
+                                    label: 'Occupancy Rate',
+                                    data: [75, 82, 90, 85, 88, 92, 87],
+                                    backgroundColor: '#1e3a5f',
+                                    borderRadius: 6
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        max: 100,
+                                        ticks: { callback: value => value + '%' }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                },
+                
+                createRoomStatusChart() {
+                    const ctx = document.getElementById('roomStatusChart');
+                    if (ctx) {
+                        new Chart(ctx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: ['Occupied', 'Available', 'Reserved', 'Cleaning'],
+                                datasets: [{
+                                    data: [42, 28, 15, 15],
+                                    backgroundColor: ['#ef4444', '#10b981', '#3b82f6', '#f59e0b']
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                cutout: '70%'
+                            }
+                        });
+                    }
+                },
+                
+                createDemographicsChart() {
+                    const ctx = document.getElementById('demographicsChart');
+                    if (ctx) {
+                        new Chart(ctx, {
+                            type: 'pie',
+                            data: {
+                                labels: ['Business', 'Leisure', 'Family', 'Couples'],
+                                datasets: [{
+                                    data: [40, 30, 20, 10],
+                                    backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b']
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false
+                            }
+                        });
+                    }
+                },
+                
+                formatPageTitle() {
+                    const titles = {
+                        'dashboard': 'Dashboard',
+                        'bookings': 'Bookings',
+                        'guests': 'Guests',
+                        'rooms': 'Rooms',
+                        'staff': 'Staff',
+                        'services': 'Services',
+                        'finance': 'Finance',
+                        'analytics': 'Analytics',
+                        'settings': 'Settings',
+                        'kitchen-orders': 'Kitchen Orders',
+                        'menu-management': 'Menu Management',
+                        'inventory': 'Inventory',
+                        'kitchen-schedule': 'Kitchen Schedule',
+                        'tables': 'Restaurant Tables',
+                        'take-order': 'Take Order',
+                        'active-orders': 'Active Orders',
+                        'billing': 'Billing',
+                        'laundry-jobs': 'Laundry Jobs',
+                        'pickup-schedule': 'Pickup Schedule',
+                        'laundry-inventory': 'Laundry Inventory',
+                        'machine-status': 'Machine Status'
+                    };
+                    return titles[this.currentPage] || 'Dashboard';
+                },
+                
+                getRoleDisplayName() {
+                    const names = {
+                        'admin': 'Administrator',
+                        'chef': 'Head Chef',
+                        'waiter': 'Lead Waiter',
+                        'laundry': 'Laundry Manager'
+                    };
+                    return names[this.userRole] || 'User';
+                },
+                
+                getRoleTitle() {
+                    const titles = {
+                        'admin': 'Administrator',
+                        'chef': 'Kitchen Staff',
+                        'waiter': 'Restaurant Staff',
+                        'laundry': 'Laundry Services'
+                    };
+                    return titles[this.userRole] || 'Staff';
+                },
+                
+                getNewButtonText() {
+                    const texts = {
+                        'admin': 'New Booking',
+                        'chef': 'New Order',
+                        'waiter': 'New Order',
+                        'laundry': 'New Job'
+                    };
+                    return texts[this.userRole] || 'New';
+                },
+                
+                switchRole() {
+                    const roles = ['admin', 'chef', 'waiter', 'laundry'];
+                    const currentIndex = roles.indexOf(this.userRole);
+                    this.userRole = roles[(currentIndex + 1) % roles.length];
+                    this.currentPage = 'dashboard';
+                },
+                
+                openModal(modalType) {
+                    this.activeModal = modalType;
+                },
+                
+                closeModal() {
+                    this.activeModal = null;
+                    this.errorMessage = '';
+                },
+                
+                showError(message) {
+                    this.errorMessage = message;
+                    this.activeModal = 'error';
+                },
+                
+                showSuccess() {
+                    this.activeModal = 'success';
+                }
+            }));
+        });
+    </script>
 </body>
 </html>
