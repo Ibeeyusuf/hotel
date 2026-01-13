@@ -113,6 +113,48 @@
             border-color: #d4af37;
             box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
         }
+        
+        /* New styles for sync system */
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .sync-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .sync-indicator.syncing {
+            background-color: #3b82f6;
+            animation: pulse 2s infinite;
+        }
+        
+        .sync-indicator.connected {
+            background-color: #10b981;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .inventory-status-critical { background-color: #fee2e2; color: #dc2626; }
+        .inventory-status-low { background-color: #fef3c7; color: #d97706; }
+        .inventory-status-good { background-color: #dbeafe; color: #1d4ed8; }
+        .inventory-status-excellent { background-color: #dcfce7; color: #059669; }
+        .inventory-status-out-of-stock { background-color: #f5f5f5; color: #6b7280; }
     </style>
     
     <script>
@@ -143,7 +185,7 @@
         }
     </script>
 </head>
-<body class="font-inter bg-gray-50 h-full" x-data="dashboardData" x-init="initCharts()">
+<body class="font-inter bg-gray-50 h-full" x-data="dashboardData" x-init="initDashboard()">
     <div class="flex h-full">
         <!-- Sidebar -->
         <aside class="w-64 bg-gradient-to-b from-navy-800 to-navy-900 flex flex-col shadow-2xl h-full">
@@ -1178,56 +1220,175 @@
                 </div>
             </div>
 
-            <!-- CHEF INVENTORY -->
-            <div x-show="currentPage === 'inventory' && userRole === 'chef'" class="p-8 fade-in">
-                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
-                    <h3 class="text-2xl font-bold text-navy-800 mb-6">Kitchen Inventory</h3>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                        <template x-for="item in chefInventory" :key="item.item">
-                            <div class="border border-gray-200 rounded-xl p-6 hover-lift">
-                                <div class="flex justify-between items-start mb-4">
-                                    <h4 class="font-bold text-navy-800 text-lg" x-text="item.item"></h4>
-                                    <span :class="item.lowStock ? 'bg-red-100 text-red-700' : 'status-active'" 
-                                          class="px-3 py-1 rounded-full text-xs font-semibold">
-                                        <span x-text="item.lowStock ? 'Low Stock' : 'In Stock'"></span>
-                                    </span>
-                                </div>
-                                
-                                <div class="mb-4">
-                                    <p class="text-sm text-gray-600 mb-1">Quantity:</p>
-                                    <p class="text-2xl font-bold text-navy-800">
-                                        <span x-text="item.quantity"></span>
-                                        <span class="text-sm text-gray-600 ml-1" x-text="item.unit"></span>
-                                    </p>
-                                </div>
-                                
-                                <div class="flex gap-2">
-                                    <button @click="openModal('reorderItem')" class="flex-1 px-4 py-2 bg-navy-700 text-white rounded-lg text-sm font-semibold hover:bg-navy-800 transition">
-                                        <i class="fas fa-shopping-cart mr-1"></i> Reorder
-                                    </button>
-                                    <button @click="openModal('inventoryChart')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-200 transition">
-                                        <i class="fas fa-chart-line"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                    
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-                        <h4 class="font-bold text-yellow-800 mb-2">Low Stock Alert</h4>
-                        <p class="text-yellow-700 text-sm">The following items are running low and need to be reordered:</p>
-                        <ul class="mt-2 text-sm text-yellow-700">
-                            <template x-for="item in chefInventory.filter(i => i.lowStock)" :key="item.item">
-                                <li class="flex items-center gap-2">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                    <span x-text="item.item + ' (' + item.quantity + ' ' + item.unit + ')'"></span>
-                                </li>
-                            </template>
-                        </ul>
-                    </div>
-                </div>
+            <!-- KITCHEN INVENTORY PAGE -->
+<div x-show="currentPage === 'inventory' && userRole === 'chef'" class="p-8 fade-in">
+    <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-2xl font-bold text-navy-800">Kitchen Inventory</h3>
+                <p class="text-gray-600 flex items-center">
+                    <span class="sync-indicator" :class="isSyncing ? 'syncing' : 'connected'"></span>
+                    Real-time sync enabled • Last updated: 
+                    <span x-text="new Date(getInventorySummary().lastUpdated).toLocaleTimeString()"></span>
+                </p>
             </div>
+            <div class="flex gap-3">
+                <button @click="addInventoryItem()" class="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">
+                    <i class="fas fa-plus mr-2"></i> Add Item
+                </button>
+                <button @click="openModal('importInventory')" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                    <i class="fas fa-file-import mr-2"></i> Import
+                </button>
+                <button @click="openModal('exportInventory')" class="px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition">
+                    <i class="fas fa-file-export mr-2"></i> Export
+                </button>
+            </div>
+        </div>
+        
+        <!-- Inventory Summary Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                <p class="text-sm text-blue-700 mb-1">Total Items</p>
+                <p class="text-2xl font-bold text-blue-800" x-text="chefInventory.length"></p>
+            </div>
+            <div class="bg-green-50 p-4 rounded-xl border border-green-200">
+                <p class="text-sm text-green-700 mb-1">In Stock</p>
+                <p class="text-2xl font-bold text-green-800" 
+                   x-text="chefInventory.filter(item => item.status === 'good' || item.status === 'excellent').length"></p>
+            </div>
+            <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
+                <p class="text-sm text-yellow-700 mb-1">Low Stock</p>
+                <p class="text-2xl font-bold text-yellow-800" 
+                   x-text="chefInventory.filter(item => item.status === 'low').length"></p>
+            </div>
+            <div class="bg-red-50 p-4 rounded-xl border border-red-200">
+                <p class="text-sm text-red-700 mb-1">Critical</p>
+                <p class="text-2xl font-bold text-red-800" 
+                   x-text="chefInventory.filter(item => item.status === 'critical' || item.status === 'out-of-stock').length"></p>
+            </div>
+        </div>
+        
+        <!-- Inventory Table -->
+        <div class="table-responsive">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-gray-200">
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Item</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Current Stock</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Portions</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Status</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Min/Max</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Last Updated</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="item in chefInventory" :key="item.id">
+                        <tr class="border-b border-gray-100 hover:bg-gray-50 table-row-hover">
+                            <td class="py-4 px-4">
+                                <div>
+                                    <p class="font-medium text-navy-700" x-text="item.item"></p>
+                                    <p class="text-sm text-gray-600 capitalize" x-text="item.category"></p>
+                                </div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div>
+                                    <p class="font-semibold" x-text="item.quantity.toFixed(2) + ' ' + item.unit"></p>
+                                    <div class="w-32 bg-gray-200 rounded-full h-2 mt-1">
+                                        <div :class="{
+                                            'bg-green-500': item.status === 'excellent',
+                                            'bg-blue-500': item.status === 'good',
+                                            'bg-yellow-500': item.status === 'low',
+                                            'bg-red-500': item.status === 'critical',
+                                            'bg-gray-500': item.status === 'out-of-stock'
+                                        }" class="h-2 rounded-full" 
+                                             :style="'width: ' + Math.min((item.quantity/item.maxStock) * 100, 100) + '%'"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div>
+                                    <p class="font-semibold" x-text="item.availablePortions"></p>
+                                    <p class="text-xs text-gray-600" x-text="item.portionSize.toFixed(2) + ' ' + item.unit + '/portion'"></p>
+                                </div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <span :class="{
+                                    'inventory-status-excellent': item.status === 'excellent',
+                                    'inventory-status-good': item.status === 'good',
+                                    'inventory-status-low': item.status === 'low',
+                                    'inventory-status-critical': item.status === 'critical',
+                                    'inventory-status-out-of-stock': item.status === 'out-of-stock'
+                                }" class="px-3 py-1 rounded-full text-xs font-semibold capitalize" 
+                                     x-text="item.status"></span>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div class="text-sm">
+                                    <p>Min: <span x-text="item.minStock"></span></p>
+                                    <p>Max: <span x-text="item.maxStock"></span></p>
+                                </div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <p class="text-sm text-gray-600" x-text="new Date(item.lastUpdated).toLocaleDateString()"></p>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div class="flex gap-2">
+                                    <button @click="editInventoryItem(item)" 
+                                            class="w-8 h-8 rounded-lg border border-blue-300 flex items-center justify-center hover:bg-blue-50">
+                                        <i class="fas fa-edit text-blue-600 text-sm"></i>
+                                    </button>
+                                    <button @click="openRestockModal(item)" 
+                                            class="w-8 h-8 rounded-lg border border-green-300 flex items-center justify-center hover:bg-green-50">
+                                        <i class="fas fa-boxes text-green-600 text-sm"></i>
+                                    </button>
+                                    <button @click="removeInventoryItem(item.id)" 
+                                            class="w-8 h-8 rounded-lg border border-red-300 flex items-center justify-center hover:bg-red-50">
+                                        <i class="fas fa-trash text-red-600 text-sm"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Low Stock Alert -->
+        <div x-show="getItemsNeedingRestock().length > 0" class="mt-6 bg-red-50 border border-red-200 rounded-xl p-6">
+            <h4 class="font-bold text-red-800 mb-2 flex items-center gap-2">
+                <i class="fas fa-exclamation-triangle"></i>
+                Low Stock Alert
+            </h4>
+            <p class="text-red-700 text-sm mb-4">The following items need attention:</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <template x-for="item in getItemsNeedingRestock()" :key="item.id">
+                    <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-red-200">
+                        <div>
+                            <p class="font-semibold text-red-700" x-text="item.item"></p>
+                            <p class="text-sm text-red-600" x-text="item.quantity.toFixed(2) + ' ' + item.unit + ' remaining'"></p>
+                            <p class="text-xs text-red-500 capitalize" x-text="'Status: ' + item.status"></p>
+                        </div>
+                        <button @click="openRestockModal(item)" class="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-semibold hover:bg-red-200 transition">
+                            Restock
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </div>
+        
+        <!-- Empty State -->
+        <div x-show="chefInventory.length === 0" class="text-center py-12">
+            <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-box-open text-gray-400 text-3xl"></i>
+            </div>
+            <h4 class="text-xl font-bold text-gray-700 mb-2">No Inventory Items</h4>
+            <p class="text-gray-600 mb-4">Add your first inventory item to get started</p>
+            <button @click="addInventoryItem()" class="px-4 py-2 bg-navy-700 text-white rounded-lg font-semibold hover:bg-navy-800 transition">
+                <i class="fas fa-plus mr-2"></i> Add First Item
+            </button>
+        </div>
+    </div>
+</div>
 
             <!-- KITCHEN SCHEDULE -->
             <div x-show="currentPage === 'kitchen-schedule' && userRole === 'chef'" class="p-8 fade-in">
@@ -1355,7 +1516,20 @@
                                 <template x-for="item in waiterMenuItems" :key="item.id">
                                     <div class="border border-gray-200 rounded-xl p-4 hover:shadow-md transition cursor-pointer hover-lift">
                                         <div class="flex justify-between items-start mb-2">
-                                            <h4 class="font-bold text-navy-800" x-text="item.name"></h4>
+                                            <div>
+                                                <h4 class="font-bold text-navy-800" x-text="item.name"></h4>
+                                                <div class="flex items-center mt-1">
+                                                    <span class="text-xs px-2 py-1 rounded-full" 
+                                                          :class="{
+                                                              'bg-green-100 text-green-700': item.availablePortions > 20,
+                                                              'bg-yellow-100 text-yellow-700': item.availablePortions > 10 && item.availablePortions <= 20,
+                                                              'bg-red-100 text-red-700': item.availablePortions <= 10
+                                                          }">
+                                                        <i class="fas fa-box mr-1"></i>
+                                                        <span x-text="item.availablePortions"></span> portions available
+                                                    </span>
+                                                </div>
+                                            </div>
                                             <span class="font-semibold text-green-600">$<span x-text="item.price"></span></span>
                                         </div>
                                         <div class="flex justify-between items-center">
@@ -1364,9 +1538,18 @@
                                                 'bg-green-100 text-green-700': item.category === 'Appetizer',
                                                 'bg-purple-100 text-purple-700': item.category === 'Beverage'
                                             }" class="px-2 py-1 rounded-full text-xs" x-text="item.category"></span>
-                                            <button @click="openModal('addToOrder')" class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200 transition">
-                                                <i class="fas fa-plus mr-1"></i> Add
-                                            </button>
+                                            
+                                            <div class="flex gap-1">
+                                                <button @click="openUseItemModalForMenuItem(item)" 
+                                                        class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200 transition"
+                                                        :disabled="item.availablePortions <= 0">
+                                                    <i class="fas fa-minus mr-1"></i> Use 1
+                                                </button>
+                                                <button @click="openModal('addToOrder')" 
+                                                        class="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm font-semibold hover:bg-green-200 transition">
+                                                    <i class="fas fa-plus mr-1"></i> Add
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </template>
@@ -2591,7 +2774,7 @@ activeModal === 'stopMachine' || activeModal === 'exportBookings'">
                                 <i class="fas fa-check text-green-600 text-2xl"></i>
                             </div>
                             <h3 class="text-xl font-bold text-navy-800 mb-2">Success!</h3>
-                            <p class="text-gray-600 mb-6">Operation completed successfully.</p>
+                            <p class="text-gray-600 mb-6" x-text="successMessage"></p>
                         </div>
                         
                         <button @click="closeModal" class="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">OK</button>
@@ -2613,6 +2796,203 @@ activeModal === 'stopMachine' || activeModal === 'exportBookings'">
                     </div>
                 </div>
 
+                <!-- Edit Inventory Modal -->
+<div x-show="activeModal === 'editInventory'">
+    <div class="p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-navy-800">Edit Inventory Item</h3>
+            <button @click="closeModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="form-group">
+                <label class="form-label">Item Name</label>
+                <input type="text" x-model="editingItem.item" class="form-input">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select x-model="editingItem.category" class="form-input">
+                        <option value="food">Food</option>
+                        <option value="beverage">Beverage</option>
+                        <option value="supplies">Supplies</option>
+                        <option value="cleaning">Cleaning</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Unit</label>
+                    <select x-model="editingItem.unit" class="form-input">
+                        <option value="kg">Kilogram (kg)</option>
+                        <option value="g">Gram (g)</option>
+                        <option value="L">Liter (L)</option>
+                        <option value="ml">Milliliter (ml)</option>
+                        <option value="pieces">Pieces</option>
+                        <option value="boxes">Boxes</option>
+                        <option value="bottles">Bottles</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label class="form-label">Current Quantity</label>
+                    <input type="number" x-model="editingItem.quantity" step="0.01" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Portion Size (in <span x-text="editingItem.unit"></span>)</label>
+                    <input type="number" x-model="editingItem.portionSize" step="0.01" class="form-input">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label class="form-label">Min Stock Level</label>
+                    <input type="number" x-model="editingItem.minStock" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Max Stock Level</label>
+                    <input type="number" x-model="editingItem.maxStock" class="form-input">
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group">
+                    <label class="form-label">Cost per Unit ($)</label>
+                    <input type="number" x-model="editingItem.costPerUnit" step="0.01" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Portions per Unit</label>
+                    <input type="number" x-model="editingItem.portionsPerUnit" class="form-input">
+                    <p class="text-xs text-gray-600 mt-1">1 <span x-text="editingItem.unit"></span> = <span x-text="editingItem.portionsPerUnit"></span> portions</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex gap-3 mt-8">
+            <button @click="closeModal()" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                Cancel
+            </button>
+            <button @click="saveEditedItem()" class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">
+                Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Restock Inventory Modal -->
+<div x-show="activeModal === 'restockItem'">
+    <div class="p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-navy-800">Restock Item</h3>
+            <button @click="closeModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="p-4 bg-blue-50 rounded-lg">
+                <p class="font-semibold" x-text="restockingItem.item"></p>
+                <p class="text-sm text-gray-600">Current: <span x-text="restockingItem.quantity.toFixed(2)"></span> <span x-text="restockingItem.unit"></span></p>
+                <p class="text-sm text-gray-600">Available Portions: <span x-text="restockingItem.availablePortions"></span></p>
+                <p class="text-sm" x-text="'Status: ' + restockingItem.status.charAt(0).toUpperCase() + restockingItem.status.slice(1)"></p>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Amount to Add (<span x-text="restockingItem.unit"></span>)</label>
+                <input type="number" x-model="restockAmount" min="0" step="0.01" class="form-input" placeholder="Enter amount">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Supplier</label>
+                <input type="text" class="form-input" placeholder="Supplier name">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Cost ($)</label>
+                <input type="number" step="0.01" class="form-input" placeholder="Total cost">
+            </div>
+        </div>
+        
+        <div class="flex gap-3 mt-8">
+            <button @click="closeModal()" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                Cancel
+            </button>
+            <button @click="restockInventoryItem(restockingItem, parseFloat(restockAmount))" 
+                    :disabled="!restockAmount || restockAmount <= 0"
+                    class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50">
+                <i class="fas fa-boxes mr-2"></i> Restock Item
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Use Item Modal for Waiters -->
+<div x-show="activeModal === 'useItem'">
+    <div class="p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-navy-800">Use Inventory Item</h3>
+            <button @click="closeModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="p-4 bg-blue-50 rounded-lg">
+                <p class="font-semibold" x-text="restockingItem.item"></p>
+                <p class="text-sm text-gray-600">
+                    Current: <span x-text="restockingItem.quantity.toFixed(2)"></span> <span x-text="restockingItem.unit"></span>
+                </p>
+                <p class="text-sm text-gray-600">
+                    Available Portions: <span x-text="restockingItem.availablePortions"></span>
+                </p>
+                <p class="text-sm">
+                    Status: 
+                    <span :class="{
+                        'text-green-600': restockingItem.status === 'excellent',
+                        'text-blue-600': restockingItem.status === 'good',
+                        'text-yellow-600': restockingItem.status === 'low',
+                        'text-red-600': restockingItem.status === 'critical' || restockingItem.status === 'out-of-stock'
+                    }" class="font-semibold capitalize" x-text="restockingItem.status"></span>
+                </p>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Portions to Use</label>
+                <input type="number" x-model="restockAmount" 
+                       :max="restockingItem.availablePortions"
+                       min="1" class="form-input" placeholder="Enter portions">
+                <p class="text-xs text-gray-600 mt-1">
+                    Each portion uses <span x-text="restockingItem.portionSize.toFixed(2)"></span> <span x-text="restockingItem.unit"></span>
+                </p>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Reason</label>
+                <select class="form-input">
+                    <option>Menu Order</option>
+                    <option>Kitchen Waste</option>
+                    <option>Spoilage</option>
+                    <option>Other</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="flex gap-3 mt-8">
+            <button @click="closeModal()" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                Cancel
+            </button>
+            <button @click="useItemFromModal()" 
+                    :disabled="!restockAmount || restockAmount <= 0 || restockAmount > restockingItem.availablePortions"
+                    class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50">
+                <i class="fas fa-utensils mr-2"></i> Use Item
+            </button>
+        </div>
+    </div>
+</div>
+
             </div>
         </div>
     </template>
@@ -2624,6 +3004,11 @@ activeModal === 'stopMachine' || activeModal === 'exportBookings'">
                 userRole: 'admin',
                 activeModal: null,
                 errorMessage: '',
+                successMessage: '',
+                editingItem: null,
+                restockingItem: null,
+                restockAmount: 0,
+                isSyncing: false,
                 
                 // Statistics
                 stats: {
@@ -2633,7 +3018,488 @@ activeModal === 'stopMachine' || activeModal === 'exportBookings'">
                     occupancyRate: 85.5
                 },
                 
-                // Sample data arrays
+                // Kitchen Inventory Data
+                chefInventory: [],
+                
+                // Initialize the dashboard
+                initDashboard() {
+                    // Initialize charts
+                    setTimeout(() => {
+                        this.createRevenueChart();
+                        this.createOccupancyChart();
+                        this.createRoomStatusChart();
+                        this.createDemographicsChart();
+                    }, 100);
+                    
+                    // Initialize inventory
+                    this.initInventory();
+                    
+                    // Start real-time sync
+                    this.startRealtimeSync();
+                },
+                
+                // Initialize inventory from localStorage
+                initInventory() {
+                    const savedInventory = localStorage.getItem('hotel_inventory');
+                    if (savedInventory) {
+                        this.chefInventory = JSON.parse(savedInventory);
+                    } else {
+                        // Load default inventory if none exists
+                        this.chefInventory = [
+                            { 
+                                id: 1, 
+                                item: 'Salmon', 
+                                category: 'food', 
+                                quantity: 12, 
+                                unit: 'kg', 
+                                portionSize: 0.25,
+                                portionsPerUnit: 4,
+                                availablePortions: 48,
+                                minStock: 5,
+                                maxStock: 50,
+                                costPerUnit: 15.50,
+                                status: 'good',
+                                lastUpdated: new Date().toISOString()
+                            },
+                            { 
+                                id: 2, 
+                                item: 'Pasta', 
+                                category: 'food', 
+                                quantity: 25, 
+                                unit: 'kg', 
+                                portionSize: 0.3,
+                                portionsPerUnit: 3.33,
+                                availablePortions: 83,
+                                minStock: 10,
+                                maxStock: 100,
+                                costPerUnit: 8.75,
+                                status: 'good',
+                                lastUpdated: new Date().toISOString()
+                            },
+                            { 
+                                id: 3, 
+                                item: 'Lettuce', 
+                                category: 'food', 
+                                quantity: 8, 
+                                unit: 'kg', 
+                                portionSize: 0.15,
+                                portionsPerUnit: 6.67,
+                                availablePortions: 53,
+                                minStock: 5,
+                                maxStock: 30,
+                                costPerUnit: 3.20,
+                                status: 'low',
+                                lastUpdated: new Date().toISOString()
+                            },
+                            { 
+                                id: 4, 
+                                item: 'Olive Oil', 
+                                category: 'supplies', 
+                                quantity: 15, 
+                                unit: 'L', 
+                                portionSize: 0.05,
+                                portionsPerUnit: 20,
+                                availablePortions: 300,
+                                minStock: 5,
+                                maxStock: 50,
+                                costPerUnit: 12.99,
+                                status: 'good',
+                                lastUpdated: new Date().toISOString()
+                            },
+                            { 
+                                id: 5, 
+                                item: 'Garlic', 
+                                category: 'food', 
+                                quantity: 3, 
+                                unit: 'kg', 
+                                portionSize: 0.02,
+                                portionsPerUnit: 50,
+                                availablePortions: 150,
+                                minStock: 2,
+                                maxStock: 20,
+                                costPerUnit: 4.50,
+                                status: 'critical',
+                                lastUpdated: new Date().toISOString()
+                            },
+                            { 
+                                id: 6, 
+                                item: 'Chicken Breast', 
+                                category: 'food', 
+                                quantity: 20, 
+                                unit: 'kg', 
+                                portionSize: 0.3,
+                                portionsPerUnit: 3.33,
+                                availablePortions: 67,
+                                minStock: 10,
+                                maxStock: 100,
+                                costPerUnit: 9.80,
+                                status: 'good',
+                                lastUpdated: new Date().toISOString()
+                            },
+                            { 
+                                id: 7, 
+                                item: 'Coffee Beans', 
+                                category: 'beverage', 
+                                quantity: 8, 
+                                unit: 'kg', 
+                                portionSize: 0.02,
+                                portionsPerUnit: 50,
+                                availablePortions: 400,
+                                minStock: 3,
+                                maxStock: 20,
+                                costPerUnit: 18.50,
+                                status: 'low',
+                                lastUpdated: new Date().toISOString()
+                            },
+                            { 
+                                id: 8, 
+                                item: 'Butter', 
+                                category: 'food', 
+                                quantity: 12, 
+                                unit: 'kg', 
+                                portionSize: 0.05,
+                                portionsPerUnit: 20,
+                                availablePortions: 240,
+                                minStock: 5,
+                                maxStock: 40,
+                                costPerUnit: 6.75,
+                                status: 'good',
+                                lastUpdated: new Date().toISOString()
+                            }
+                        ];
+                        this.saveInventory();
+                    }
+                    
+                    // Calculate menu portions
+                    this.calculateMenuPortions();
+                },
+                
+                // KITCHEN: Add new inventory item
+                addInventoryItem() {
+                    const newItem = {
+                        id: Date.now(),
+                        item: 'New Item',
+                        category: 'food',
+                        quantity: 0,
+                        unit: 'kg',
+                        portionSize: 0.25,
+                        portionsPerUnit: 4,
+                        availablePortions: 0,
+                        minStock: 10,
+                        maxStock: 100,
+                        costPerUnit: 0,
+                        status: 'out-of-stock',
+                        lastUpdated: new Date().toISOString()
+                    };
+                    
+                    this.chefInventory.push(newItem);
+                    this.saveInventory();
+                    this.showSuccess('New inventory item added');
+                    
+                    // Edit the new item immediately
+                    this.editInventoryItem(newItem);
+                },
+                
+                // KITCHEN: Edit inventory item
+                editInventoryItem(item) {
+                    this.editingItem = JSON.parse(JSON.stringify(item)); // Deep clone
+                    this.activeModal = 'editInventory';
+                },
+                
+                // KITCHEN: Save edited inventory item
+                saveEditedItem() {
+                    const index = this.chefInventory.findIndex(i => i.id === this.editingItem.id);
+                    if (index !== -1) {
+                        // Recalculate portions
+                        this.editingItem.availablePortions = Math.floor(
+                            this.editingItem.quantity * this.editingItem.portionsPerUnit
+                        );
+                        
+                        // Update status
+                        this.editingItem.status = this.calculateStockStatus(this.editingItem);
+                        this.editingItem.lastUpdated = new Date().toISOString();
+                        
+                        this.chefInventory[index] = { ...this.editingItem };
+                        this.saveInventory();
+                        this.closeModal();
+                        this.showSuccess('Inventory item updated');
+                    }
+                },
+                
+                // KITCHEN: Remove inventory item
+                removeInventoryItem(itemId) {
+                    if (confirm('Are you sure you want to remove this item from inventory?')) {
+                        this.chefInventory = this.chefInventory.filter(item => item.id !== itemId);
+                        this.saveInventory();
+                        this.showSuccess('Inventory item removed');
+                    }
+                },
+                
+                // KITCHEN/Waiter: Restock inventory item
+                restockInventoryItem(item, amount) {
+                    const index = this.chefInventory.findIndex(i => i.id === item.id);
+                    if (index !== -1) {
+                        this.chefInventory[index].quantity += amount;
+                        this.chefInventory[index].availablePortions = Math.floor(
+                            this.chefInventory[index].quantity * this.chefInventory[index].portionsPerUnit
+                        );
+                        this.chefInventory[index].status = this.calculateStockStatus(this.chefInventory[index]);
+                        this.chefInventory[index].lastUpdated = new Date().toISOString();
+                        
+                        this.saveInventory();
+                        this.showSuccess(`${amount} ${item.unit} restocked for ${item.item}`);
+                        this.closeModal();
+                    }
+                },
+                
+                // KITCHEN: Open restock modal
+                openRestockModal(item) {
+                    this.restockingItem = item;
+                    this.restockAmount = 0;
+                    this.activeModal = 'restockItem';
+                },
+                
+                // WAITER: Use inventory item (deduct portions)
+                useInventoryItem(itemId, portionsUsed) {
+                    const item = this.chefInventory.find(i => i.id === itemId);
+                    if (item) {
+                        if (item.availablePortions >= portionsUsed) {
+                            const unitsUsed = portionsUsed / item.portionsPerUnit;
+                            item.quantity -= unitsUsed;
+                            item.availablePortions = Math.floor(item.quantity * item.portionsPerUnit);
+                            item.status = this.calculateStockStatus(item);
+                            item.lastUpdated = new Date().toISOString();
+                            
+                            this.saveInventory();
+                            this.showSuccess(`${portionsUsed} portion(s) used from ${item.item}`);
+                            return true;
+                        } else {
+                            this.showError(`Not enough ${item.item} in stock!`);
+                            return false;
+                        }
+                    }
+                    return false;
+                },
+                
+                // WAITER: Quick use modal
+                openUseItemModal(item) {
+                    this.restockingItem = item;
+                    this.restockAmount = 1; // Default 1 portion
+                    this.activeModal = 'useItem';
+                },
+                
+                // WAITER: Use item from modal
+                useItemFromModal() {
+                    if (this.useInventoryItem(this.restockingItem.id, this.restockAmount)) {
+                        this.closeModal();
+                    }
+                },
+                
+                // WAITER: Manual adjustment of inventory
+                manualAdjustInventory(itemId, adjustment) {
+                    const item = this.chefInventory.find(i => i.id === itemId);
+                    if (item) {
+                        const adjustmentUnits = adjustment / item.portionsPerUnit;
+                        item.quantity += adjustmentUnits;
+                        item.availablePortions = Math.floor(item.quantity * item.portionsPerUnit);
+                        item.status = this.calculateStockStatus(item);
+                        item.lastUpdated = new Date().toISOString();
+                        
+                        this.saveInventory();
+                        this.showSuccess(`Inventory adjusted by ${adjustment} portions`);
+                    }
+                },
+                
+                // WAITER: Open use modal for menu item
+                openUseItemModalForMenuItem(menuItem) {
+                    // Find the main ingredient for this menu item
+                    const mainIngredient = this.getMainIngredientForMenuItem(menuItem.name);
+                    if (mainIngredient) {
+                        this.openUseItemModal(mainIngredient);
+                    } else {
+                        this.showError('Cannot find inventory item for this menu item');
+                    }
+                },
+                
+                getMainIngredientForMenuItem(menuItemName) {
+                    const ingredients = this.getRelatedIngredients(menuItemName);
+                    if (ingredients.length > 0) {
+                        return this.chefInventory.find(item => 
+                            ingredients.some(ing => item.item.toLowerCase().includes(ing.toLowerCase()))
+                        );
+                    }
+                    return null;
+                },
+                
+                // Calculate stock status
+                calculateStockStatus(item) {
+                    if (item.quantity <= 0) return 'out-of-stock';
+                    const percentage = (item.quantity / item.maxStock) * 100;
+                    if (percentage <= 10) return 'critical';
+                    if (percentage <= 30) return 'low';
+                    if (percentage <= 70) return 'good';
+                    return 'excellent';
+                },
+                
+                // Get inventory summary for dashboard
+                getInventorySummary() {
+                    const totalItems = this.chefInventory.length;
+                    const criticalItems = this.chefInventory.filter(item => 
+                        item.status === 'critical' || item.status === 'out-of-stock'
+                    ).length;
+                    const lowItems = this.chefInventory.filter(item => item.status === 'low').length;
+                    const totalValue = this.chefInventory.reduce((sum, item) => 
+                        sum + (item.quantity * item.costPerUnit), 0
+                    );
+                    
+                    return {
+                        totalItems,
+                        criticalItems,
+                        lowItems,
+                        totalValue: totalValue.toFixed(2),
+                        lastUpdated: this.chefInventory.length > 0 ? 
+                            new Date(Math.max(...this.chefInventory.map(i => new Date(i.lastUpdated)))) : 
+                            new Date()
+                    };
+                },
+                
+                // Get items needing restock
+                getItemsNeedingRestock() {
+                    return this.chefInventory.filter(item => 
+                        item.status === 'critical' || item.status === 'low' || item.status === 'out-of-stock'
+                    );
+                },
+                
+                // Calculate menu portions based on inventory
+                calculateMenuPortions() {
+                    // This would connect menu items to inventory items
+                    // For demo, we'll update a property in waiterMenuItems
+                    this.waiterMenuItems.forEach(menuItem => {
+                        // Simulate portion calculation based on ingredient requirements
+                        menuItem.availablePortions = this.calculateMenuItemPortions(menuItem.name);
+                    });
+                },
+                
+                calculateMenuItemPortions(itemName) {
+                    // Simplified calculation for demo
+                    // In real app, this would check ingredient requirements
+                    const inventoryForItem = this.chefInventory.filter(item => 
+                        itemName.toLowerCase().includes(item.item.toLowerCase().substring(0, 3)) ||
+                        this.getRelatedIngredients(itemName).some(ing => 
+                            item.item.toLowerCase().includes(ing.toLowerCase())
+                        )
+                    );
+                    
+                    if (inventoryForItem.length === 0) return 10; // Default
+                    
+                    return Math.min(...inventoryForItem.map(item => 
+                        Math.floor(item.availablePortions / 2)
+                    ));
+                },
+                
+                getRelatedIngredients(itemName) {
+                    // Map menu items to main ingredients
+                    const ingredientMap = {
+                        'Grilled Salmon': ['salmon', 'oil', 'lemon'],
+                        'Caesar Salad': ['lettuce', 'chicken', 'cheese'],
+                        'Pasta Carbonara': ['pasta', 'egg', 'cheese', 'bacon'],
+                        'Red Wine': ['wine'],
+                        'Chocolate Cake': ['flour', 'sugar', 'chocolate', 'butter'],
+                        'Club Sandwich': ['bread', 'chicken', 'lettuce', 'tomato']
+                    };
+                    
+                    return ingredientMap[itemName] || [];
+                },
+                
+                // Save inventory to localStorage and sync
+                saveInventory() {
+                    localStorage.setItem('hotel_inventory', JSON.stringify(this.chefInventory));
+                    localStorage.setItem('inventory_last_modified', Date.now().toString());
+                    this.broadcastInventoryUpdate();
+                },
+                
+                // Broadcast inventory update to all dashboards
+                broadcastInventoryUpdate() {
+                    // Simulate real-time broadcast
+                    const event = new CustomEvent('inventory-updated', {
+                        detail: {
+                            inventory: this.chefInventory,
+                            timestamp: Date.now(),
+                            updatedBy: this.userRole
+                        }
+                    });
+                    window.dispatchEvent(event);
+                },
+                
+                // Listen for inventory updates
+                setupInventoryListener() {
+                    window.addEventListener('inventory-updated', (event) => {
+                        if (!this.isSyncing) {
+                            this.isSyncing = true;
+                            const remoteInventory = event.detail.inventory;
+                            
+                            // Only update if data is newer
+                            const localLastModified = localStorage.getItem('inventory_last_modified');
+                            if (!localLastModified || event.detail.timestamp > parseInt(localLastModified)) {
+                                this.chefInventory = remoteInventory;
+                                this.calculateMenuPortions();
+                                
+                                if (event.detail.updatedBy !== this.userRole) {
+                                    this.showNotification(`Inventory updated by ${event.detail.updatedBy}`);
+                                }
+                            }
+                            
+                            setTimeout(() => {
+                                this.isSyncing = false;
+                            }, 500);
+                        }
+                    });
+                },
+                
+                // Start real-time sync
+                startRealtimeSync() {
+                    this.setupInventoryListener();
+                    
+                    // Simulate periodic sync
+                    setInterval(() => {
+                        this.checkForUpdates();
+                    }, 3000);
+                },
+                
+                checkForUpdates() {
+                    // Check if other tabs have updated inventory
+                    const lastSync = localStorage.getItem('last_sync_timestamp');
+                    const now = Date.now();
+                    
+                    if (!lastSync || (now - parseInt(lastSync)) > 5000) {
+                        // Force a sync check
+                        this.broadcastInventoryUpdate();
+                        localStorage.setItem('last_sync_timestamp', now.toString());
+                    }
+                },
+                
+                // Show notification
+                showNotification(message) {
+                    // Create a toast notification
+                    const toast = document.createElement('div');
+                    toast.className = 'fixed bottom-4 right-4 bg-blue-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center animate-fade-in';
+                    toast.innerHTML = `
+                        <i class="fas fa-sync-alt mr-2 animate-spin"></i>
+                        <span>${message}</span>
+                        <button class="ml-4" onclick="this.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+                    document.body.appendChild(toast);
+                    
+                    setTimeout(() => {
+                        if (toast.parentElement) {
+                            toast.remove();
+                        }
+                    }, 3000);
+                },
+                
+                // Existing data arrays
                 recentBookings: [
                     { id: 'BK001', guest: 'John Smith', room: 'Deluxe Suite', checkin: '2024-01-15', checkout: '2024-01-20', status: 'active', amount: 1250 },
                     { id: 'BK002', guest: 'Emma Wilson', room: 'Executive', checkin: '2024-01-16', checkout: '2024-01-18', status: 'confirmed', amount: 850 },
@@ -2693,15 +3559,6 @@ activeModal === 'stopMachine' || activeModal === 'exportBookings'">
                     { id: 4, name: 'Chocolate Cake', category: 'Dessert', price: 10, status: 'Available', prepTime: '10 min' }
                 ],
                 
-                chefInventory: [
-                    { item: 'Salmon', quantity: 12, unit: 'kg', lowStock: false },
-                    { item: 'Pasta', quantity: 25, unit: 'kg', lowStock: false },
-                    { item: 'Lettuce', quantity: 8, unit: 'kg', lowStock: true },
-                    { item: 'Olive Oil', quantity: 15, unit: 'L', lowStock: false },
-                    { item: 'Garlic', quantity: 3, unit: 'kg', lowStock: true },
-                    { item: 'Chicken Breast', quantity: 20, unit: 'kg', lowStock: false }
-                ],
-                
                 // Waiter data
                 waiterTables: [
                     { table: 'T01', status: 'Available', guests: 0, order: 'None', time: '' },
@@ -2713,12 +3570,12 @@ activeModal === 'stopMachine' || activeModal === 'exportBookings'">
                 ],
                 
                 waiterMenuItems: [
-                    { id: 1, name: 'Grilled Salmon', category: 'Main', price: 28 },
-                    { id: 2, name: 'Caesar Salad', category: 'Appetizer', price: 12 },
-                    { id: 3, name: 'Pasta Carbonara', category: 'Main', price: 22 },
-                    { id: 4, name: 'Red Wine', category: 'Beverage', price: 25 },
-                    { id: 5, name: 'Chocolate Cake', category: 'Dessert', price: 10 },
-                    { id: 6, name: 'Club Sandwich', category: 'Main', price: 16 }
+                    { id: 1, name: 'Grilled Salmon', category: 'Main', price: 28, availablePortions: 24 },
+                    { id: 2, name: 'Caesar Salad', category: 'Appetizer', price: 12, availablePortions: 26 },
+                    { id: 3, name: 'Pasta Carbonara', category: 'Main', price: 22, availablePortions: 41 },
+                    { id: 4, name: 'Red Wine', category: 'Beverage', price: 25, availablePortions: 50 },
+                    { id: 5, name: 'Chocolate Cake', category: 'Dessert', price: 10, availablePortions: 120 },
+                    { id: 6, name: 'Club Sandwich', category: 'Main', price: 16, availablePortions: 33 }
                 ],
                 
                 waiterOrders: [
@@ -2751,17 +3608,7 @@ activeModal === 'stopMachine' || activeModal === 'exportBookings'">
                     { id: 'IR-01', type: 'Ironing Machine', status: 'Running', capacity: 'N/A', cycle: 'Ironing' }
                 ],
                 
-                // Methods
-                initCharts() {
-                    // Initialize charts
-                    setTimeout(() => {
-                        this.createRevenueChart();
-                        this.createOccupancyChart();
-                        this.createRoomStatusChart();
-                        this.createDemographicsChart();
-                    }, 100);
-                },
-                
+                // Chart creation methods
                 createRevenueChart() {
                     const ctx = document.getElementById('revenueChart');
                     if (ctx) {
@@ -2858,6 +3705,7 @@ activeModal === 'stopMachine' || activeModal === 'exportBookings'">
                     }
                 },
                 
+                // UI helper methods
                 formatPageTitle() {
                     const titles = {
                         'dashboard': 'Dashboard',
@@ -2928,7 +3776,11 @@ activeModal === 'stopMachine' || activeModal === 'exportBookings'">
                 
                 closeModal() {
                     this.activeModal = null;
+                    this.editingItem = null;
+                    this.restockingItem = null;
+                    this.restockAmount = 0;
                     this.errorMessage = '';
+                    this.successMessage = '';
                 },
                 
                 showError(message) {
@@ -2936,7 +3788,8 @@ activeModal === 'stopMachine' || activeModal === 'exportBookings'">
                     this.activeModal = 'error';
                 },
                 
-                showSuccess() {
+                showSuccess(message = 'Operation completed successfully') {
+                    this.successMessage = message;
                     this.activeModal = 'success';
                 }
             }));
