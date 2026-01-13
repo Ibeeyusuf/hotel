@@ -264,12 +264,18 @@
                                 <span class="font-medium">Menu Management</span>
                             </button>
                             
+                            <!-- NEW BUTTON ADDED HERE -->
+                            <button @click="currentPage = 'kitchen-menu'" :class="currentPage === 'kitchen-menu' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                                <i class="fas fa-clipboard-check w-5"></i>
+                                <span class="font-medium">Kitchen Menu</span>
+                            </button>
+                            
                             <button @click="currentPage = 'inventory'" :class="currentPage === 'inventory' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
                                 <i class="fas fa-boxes w-5"></i>
                                 <span class="font-medium">Inventory</span>
                             </button>
                             
-                            <button @click="currentPage = 'kitchen-schedule'" :class="currentPage === 'kitchen-schedule' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
+                            <button @click="currentPage === 'kitchen-schedule'" :class="currentPage === 'kitchen-schedule' ? 'bg-gold-500 text-white' : 'text-white hover:bg-navy-700'" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition">
                                 <i class="fas fa-calendar-alt w-5"></i>
                                 <span class="font-medium">Kitchen Schedule</span>
                             </button>
@@ -1390,6 +1396,211 @@
     </div>
 </div>
 
+<!-- KITCHEN MENU PAGE (Shows real-time waiter updates) -->
+<div x-show="currentPage === 'kitchen-menu' && userRole === 'chef'" class="p-8 fade-in">
+    <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-2xl font-bold text-navy-800">Kitchen Menu - Real-time Updates</h3>
+                <p class="text-gray-600 flex items-center">
+                    <span class="sync-indicator" :class="isSyncing ? 'syncing' : 'connected'"></span>
+                    Live updates from waiters • Last sync: 
+                    <span x-text="new Date().toLocaleTimeString()"></span>
+                </p>
+            </div>
+            <div class="flex gap-3">
+                <button @click="refreshMenu()" class="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">
+                    <i class="fas fa-sync-alt mr-2"></i> Refresh
+                </button>
+                <button @click="openModal('printKitchenMenu')" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                    <i class="fas fa-print mr-2"></i> Print
+                </button>
+            </div>
+        </div>
+        
+        <!-- Menu Status Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                <p class="text-sm text-blue-700 mb-1">Total Menu Items</p>
+                <p class="text-2xl font-bold text-blue-800" x-text="chefMenu.length"></p>
+            </div>
+            <div class="bg-green-50 p-4 rounded-xl border border-green-200">
+                <p class="text-sm text-green-700 mb-1">Available Now</p>
+                <p class="text-2xl font-bold text-green-800" 
+                   x-text="chefMenu.filter(item => item.status === 'Available').length"></p>
+            </div>
+            <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
+                <p class="text-sm text-yellow-700 mb-1">Low Stock Items</p>
+                <p class="text-2xl font-bold text-yellow-800" 
+                   x-text="chefMenu.filter(item => item.stockStatus === 'low').length"></p>
+            </div>
+            <div class="bg-red-50 p-4 rounded-xl border border-red-200">
+                <p class="text-sm text-red-700 mb-1">Out of Stock</p>
+                <p class="text-2xl font-bold text-red-800" 
+                   x-text="chefMenu.filter(item => item.stockStatus === 'out-of-stock').length"></p>
+            </div>
+        </div>
+        
+        <!-- Real-time Activity Feed -->
+        <div class="mb-8 bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <h4 class="font-bold text-navy-800 mb-4 flex items-center gap-2">
+                <i class="fas fa-bell text-blue-600"></i>
+                Recent Activity from Waiters
+            </h4>
+            <div class="space-y-3">
+                <template x-for="activity in recentActivity" :key="activity.id">
+                    <div class="flex items-start p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3"
+                             :class="{
+                                 'bg-blue-100': activity.type === 'order',
+                                 'bg-red-100': activity.type === 'stock-update',
+                                 'bg-green-100': activity.type === 'restock'
+                             }">
+                            <i class="fas" 
+                               :class="{
+                                   'fa-utensils text-blue-600': activity.type === 'order',
+                                   'fa-box text-red-600': activity.type === 'stock-update',
+                                   'fa-boxes text-green-600': activity.type === 'restock'
+                               }"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-medium" x-text="activity.message"></p>
+                            <p class="text-sm text-gray-600">
+                                <span x-text="activity.time"></span> • 
+                                <span class="font-medium" x-text="activity.waiter"></span>
+                            </p>
+                        </div>
+                        <span class="text-xs text-gray-500" x-text="activity.status"></span>
+                    </div>
+                </template>
+                
+                <div x-show="recentActivity.length === 0" class="text-center py-4 text-gray-500">
+                    <i class="fas fa-history text-2xl mb-2"></i>
+                    <p>No recent activity</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Menu Items with Real-time Stock Levels -->
+        <div class="table-responsive">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b border-gray-200">
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Menu Item</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Category</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Price</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Prep Time</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Stock Status</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Available Portions</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Last Ordered</th>
+                        <th class="text-left py-3 px-4 text-sm font-semibold text-gray-600">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="item in chefMenu" :key="item.id">
+                        <tr class="border-b border-gray-100 hover:bg-gray-50 table-row-hover">
+                            <td class="py-4 px-4">
+                                <div>
+                                    <p class="font-medium text-navy-700" x-text="item.name"></p>
+                                    <p class="text-sm text-gray-600" x-text="item.description || 'No description'"></p>
+                                </div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <span :class="{
+                                    'bg-blue-100 text-blue-700': item.category === 'Main Course',
+                                    'bg-green-100 text-green-700': item.category === 'Appetizer',
+                                    'bg-purple-100 text-purple-700': item.category === 'Dessert',
+                                    'bg-yellow-100 text-yellow-700': item.category === 'Beverage'
+                                }" class="px-3 py-1 rounded-full text-xs font-semibold" x-text="item.category"></span>
+                            </td>
+                            <td class="py-4 px-4 font-semibold">$<span x-text="item.price"></span></td>
+                            <td class="py-4 px-4" x-text="item.prepTime"></td>
+                            <td class="py-4 px-4">
+                                <div class="flex items-center gap-2">
+                                    <span :class="{
+                                        'inventory-status-excellent': item.stockStatus === 'excellent',
+                                        'inventory-status-good': item.stockStatus === 'good',
+                                        'inventory-status-low': item.stockStatus === 'low',
+                                        'inventory-status-critical': item.stockStatus === 'critical',
+                                        'inventory-status-out-of-stock': item.stockStatus === 'out-of-stock'
+                                    }" class="px-3 py-1 rounded-full text-xs font-semibold capitalize" 
+                                         x-text="item.stockStatus || 'good'"></span>
+                                    <div class="w-16 bg-gray-200 rounded-full h-2">
+                                        <div :class="{
+                                            'bg-green-500': item.stockStatus === 'excellent',
+                                            'bg-blue-500': item.stockStatus === 'good',
+                                            'bg-yellow-500': item.stockStatus === 'low',
+                                            'bg-red-500': item.stockStatus === 'critical',
+                                            'bg-gray-500': item.stockStatus === 'out-of-stock'
+                                        }" class="h-2 rounded-full" 
+                                             :style="'width: ' + (item.availablePortions / 100 * 100) + '%'"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-semibold" x-text="item.availablePortions || 0"></span>
+                                    <span class="text-xs text-gray-600">portions</span>
+                                </div>
+                            </td>
+                            <td class="py-4 px-4">
+                                <p class="text-sm text-gray-600" x-text="item.lastOrdered || 'Not ordered yet'"></p>
+                            </td>
+                            <td class="py-4 px-4">
+                                <div class="flex gap-2">
+                                    <button @click="restockMenuItem(item)" 
+                                            class="w-8 h-8 rounded-lg border border-green-300 flex items-center justify-center hover:bg-green-50">
+                                        <i class="fas fa-boxes text-green-600 text-sm"></i>
+                                    </button>
+                                    <button @click="viewMenuItemIngredients(item)" 
+                                            class="w-8 h-8 rounded-lg border border-blue-300 flex items-center justify-center hover:bg-blue-50">
+                                        <i class="fas fa-list text-blue-600 text-sm"></i>
+                                    </button>
+                                    <button @click="toggleMenuItemStatus(item)" 
+                                            class="w-8 h-8 rounded-lg border border-yellow-300 flex items-center justify-center hover:bg-yellow-50">
+                                        <i class="fas" :class="item.status === 'Available' ? 'fa-toggle-on text-yellow-600' : 'fa-toggle-off text-gray-400'"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Low Stock Alert Section -->
+        <div x-show="chefMenu.filter(item => item.stockStatus === 'low' || item.stockStatus === 'critical').length > 0" 
+             class="mt-6 bg-red-50 border border-red-200 rounded-xl p-6">
+            <h4 class="font-bold text-red-800 mb-2 flex items-center gap-2">
+                <i class="fas fa-exclamation-triangle"></i>
+                Menu Items Requiring Attention
+            </h4>
+            <p class="text-red-700 text-sm mb-4">The following menu items have low stock and need restocking:</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <template x-for="item in chefMenu.filter(i => i.stockStatus === 'low' || i.stockStatus === 'critical')" :key="item.id">
+                    <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-red-200">
+                        <div>
+                            <p class="font-semibold text-red-700" x-text="item.name"></p>
+                            <p class="text-sm text-red-600" x-text="'Available portions: ' + (item.availablePortions || 0)"></p>
+                            <p class="text-xs text-red-500 capitalize" x-text="'Status: ' + item.stockStatus"></p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button @click="restockMenuItem(item)" 
+                                    class="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-sm font-semibold hover:bg-red-200 transition">
+                                Restock
+                            </button>
+                            <button @click="viewMenuItemIngredients(item)" 
+                                    class="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-semibold hover:bg-blue-200 transition">
+                                View Ingredients
+                            </button>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+</div>
+
             <!-- KITCHEN SCHEDULE -->
             <div x-show="currentPage === 'kitchen-schedule' && userRole === 'chef'" class="p-8 fade-in">
                 <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
@@ -1526,7 +1737,7 @@
                                                               'bg-red-100 text-red-700': item.availablePortions <= 10
                                                           }">
                                                         <i class="fas fa-box mr-1"></i>
-                                                        <span x-text="item.availablePortions"></span> portions available
+                                                        <span></span>4 portions available
                                                     </span>
                                                 </div>
                                             </div>
@@ -2120,6 +2331,42 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- View Ingredients Modal -->
+<div x-show="activeModal === 'viewIngredients'">
+    <div class="p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-navy-800">Menu Item Ingredients</h3>
+            <button @click="closeModal()" class="text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="p-4 bg-blue-50 rounded-lg">
+                <div x-html="modalMessage"></div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Quick Actions</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <button @click="openModal('restockItem')" class="px-4 py-2 bg-green-100 text-green-700 rounded-lg font-semibold hover:bg-green-200 transition">
+                        <i class="fas fa-boxes mr-2"></i> Restock All
+                    </button>
+                    <button @click="openModal('orderIngredients')" class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold hover:bg-blue-200 transition">
+                        <i class="fas fa-shopping-cart mr-2"></i> Order More
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex gap-3 mt-8">
+            <button @click="closeModal()" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
 
                 <div x-show="activeModal === 'viewReports'">
                     <div class="p-6">
@@ -3023,20 +3270,23 @@ activeModal === 'stopMachine' || activeModal === 'exportBookings'">
                 
                 // Initialize the dashboard
                 initDashboard() {
-                    // Initialize charts
-                    setTimeout(() => {
-                        this.createRevenueChart();
-                        this.createOccupancyChart();
-                        this.createRoomStatusChart();
-                        this.createDemographicsChart();
-                    }, 100);
-                    
-                    // Initialize inventory
-                    this.initInventory();
-                    
-                    // Start real-time sync
-                    this.startRealtimeSync();
-                },
+    // Initialize charts
+    setTimeout(() => {
+        this.createRevenueChart();
+        this.createOccupancyChart();
+        this.createRoomStatusChart();
+        this.createDemographicsChart();
+    }, 100);
+    
+    // Initialize inventory
+    this.initInventory();
+    
+    // Initialize chef menu
+    this.initChefMenu();
+    
+    // Start real-time sync
+    this.startRealtimeSync();
+},
                 
                 // Initialize inventory from localStorage
                 initInventory() {
@@ -3173,7 +3423,157 @@ activeModal === 'stopMachine' || activeModal === 'exportBookings'">
                     // Calculate menu portions
                     this.calculateMenuPortions();
                 },
-                
+
+                recentActivity: [
+    { 
+        id: 1, 
+        type: 'order', 
+        message: 'Order #WO001 placed for Table T02', 
+        waiter: 'John Waiter', 
+        time: '2 minutes ago',
+        status: 'Pending'
+    },
+    { 
+        id: 2, 
+        type: 'stock-update', 
+        message: '2 portions of Grilled Salmon used', 
+        waiter: 'Sarah Waiter', 
+        time: '5 minutes ago',
+        status: 'Completed'
+    },
+    { 
+        id: 3, 
+        type: 'restock', 
+        message: 'Salmon restocked by 5kg', 
+        waiter: 'Kitchen', 
+        time: '10 minutes ago',
+        status: 'Completed'
+    }
+],
+
+// Refresh menu and update stock status
+refreshMenu() {
+    this.calculateMenuPortions();
+    this.updateChefMenuStockStatus();
+    this.showSuccess('Menu refreshed with latest stock levels');
+},
+
+// Update chef menu stock status based on inventory
+updateChefMenuStockStatus() {
+    this.chefMenu.forEach(menuItem => {
+        // Calculate stock status based on available portions
+        const portions = menuItem.availablePortions || 0;
+        if (portions <= 0) {
+            menuItem.stockStatus = 'out-of-stock';
+        } else if (portions <= 10) {
+            menuItem.stockStatus = 'critical';
+        } else if (portions <= 20) {
+            menuItem.stockStatus = 'low';
+        } else if (portions <= 50) {
+            menuItem.stockStatus = 'good';
+        } else {
+            menuItem.stockStatus = 'excellent';
+        }
+        
+        // Update last ordered time
+        if (!menuItem.lastOrdered && portions < 100) {
+            menuItem.lastOrdered = new Date().toLocaleTimeString();
+        }
+    });
+},
+
+// Restock a specific menu item
+restockMenuItem(item) {
+    // Find the main ingredient for this menu item
+    const mainIngredient = this.getMainIngredientForMenuItem(item.name);
+    if (mainIngredient) {
+        this.restockingItem = mainIngredient;
+        this.restockAmount = 10; // Default restock amount
+        this.activeModal = 'restockItem';
+    } else {
+        this.showError('Cannot find inventory item for this menu item');
+    }
+},
+
+// View ingredients for a menu item
+viewMenuItemIngredients(item) {
+    const ingredients = this.getRelatedIngredients(item.name);
+    if (ingredients.length > 0) {
+        let message = `Ingredients for ${item.name}:<br><ul class="mt-2">`;
+        ingredients.forEach(ing => {
+            const invItem = this.chefInventory.find(i => 
+                i.item.toLowerCase().includes(ing.toLowerCase())
+            );
+            if (invItem) {
+                message += `<li>• ${ing}: ${invItem.availablePortions} portions available</li>`;
+            } else {
+                message += `<li>• ${ing}: Not in inventory</li>`;
+            }
+        });
+        message += '</ul>';
+        
+        this.activeModal = 'viewIngredients';
+        this.modalMessage = message;
+    } else {
+        this.showError('No ingredients found for this menu item');
+    }
+},
+
+// Toggle menu item status (Available/Unavailable)
+toggleMenuItemStatus(item) {
+    item.status = item.status === 'Available' ? 'Unavailable' : 'Available';
+    this.showSuccess(`${item.name} is now ${item.status}`);
+    
+    // Log this activity
+    this.addActivity({
+        type: 'stock-update',
+        message: `${item.name} marked as ${item.status}`,
+        waiter: 'Kitchen',
+        status: 'Completed'
+    });
+},
+
+// Add activity to recent activity feed
+addActivity(activity) {
+    activity.id = Date.now();
+    activity.time = 'Just now';
+    this.recentActivity.unshift(activity);
+    
+    // Keep only last 10 activities
+    if (this.recentActivity.length > 10) {
+        this.recentActivity.pop();
+    }
+},
+
+// Initialize chef menu with stock status
+initChefMenu() {
+    // Update chef menu with stock status
+    this.chefMenu.forEach(item => {
+        item.availablePortions = this.calculateMenuItemPortions(item.name);
+        item.stockStatus = this.calculateMenuItemStockStatus(item.name);
+        item.description = this.getMenuItemDescription(item.name);
+    });
+},
+
+getMenuItemDescription(itemName) {
+    const descriptions = {
+        'Grilled Salmon': 'Fresh salmon grilled with herbs and lemon',
+        'Caesar Salad': 'Classic Caesar with romaine, croutons, and parmesan',
+        'Pasta Carbonara': 'Creamy pasta with eggs, cheese, and pancetta',
+        'Chocolate Cake': 'Rich chocolate cake with ganache frosting'
+    };
+    return descriptions[itemName] || 'Delicious menu item';
+},
+
+calculateMenuItemStockStatus(itemName) {
+    const portions = this.calculateMenuItemPortions(itemName);
+    if (portions <= 0) return 'out-of-stock';
+    if (portions <= 10) return 'critical';
+    if (portions <= 20) return 'low';
+    if (portions <= 50) return 'good';
+    return 'excellent';
+},
+
                 // KITCHEN: Add new inventory item
                 addInventoryItem() {
                     const newItem = {
@@ -3419,17 +3819,29 @@ activeModal === 'stopMachine' || activeModal === 'exportBookings'">
                 },
                 
                 // Broadcast inventory update to all dashboards
-                broadcastInventoryUpdate() {
-                    // Simulate real-time broadcast
-                    const event = new CustomEvent('inventory-updated', {
-                        detail: {
-                            inventory: this.chefInventory,
-                            timestamp: Date.now(),
-                            updatedBy: this.userRole
-                        }
-                    });
-                    window.dispatchEvent(event);
-                },
+                // Update this method:
+broadcastInventoryUpdate(source = 'kitchen') {
+    // Simulate real-time broadcast
+    const event = new CustomEvent('inventory-updated', {
+        detail: {
+            inventory: this.chefInventory,
+            timestamp: Date.now(),
+            updatedBy: this.userRole,
+            source: source
+        }
+    });
+    window.dispatchEvent(event);
+    
+    // Log activity if update came from waiter
+    if (source === 'waiter' && this.userRole === 'chef') {
+        this.addActivity({
+            type: 'stock-update',
+            message: 'Inventory updated by waiter',
+            waiter: 'Waiter',
+            status: 'Completed'
+        });
+    }
+},
                 
                 // Listen for inventory updates
                 setupInventoryListener() {
